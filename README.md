@@ -24,12 +24,14 @@ python -m venv proyecto-final-venv
 ```
 #### 4. Instala las dependencias.
 ```bash
-pip install -r requirements/requirements.txt
+python.exe -m pip install --upgrade pip
+pip install -r .\requeriments\requirements.txt
 ```
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
-```powershell
-move .\requirements\Montserrat-Regular.ttf .\proyecto-final-venv\Include\
-move .\requirements\user.py .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\  
+```bash
+copy .\requirements\Montserrat-Regular.ttf .\proyecto-final-venv\Include\
+Remove-Item .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\user.py
+copy .\requirements\user.py .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\
 ```
 #### 6. Desactiva el entorno virtual.
 ```bash
