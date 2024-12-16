@@ -59,8 +59,8 @@ pip install -r requirements/requirements.txt
 ```
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
 ```powershell
-move .\requirements\Montserrat-Regular.ttf .\proyecto-final-venv\Include\
-move .\requirements\user.py .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\  
+move requirements/Montserrat-Regular.ttf proyecto-final-venv/Include
+move requirements/user.py proyecto-final-venv/Lib/site-packages/ttkbootstrap/themes  
 ```
 #### 6. Desactiva el entorno virtual.
 ```bash
