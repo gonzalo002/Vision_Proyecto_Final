@@ -1,0 +1,8 @@
+#goal definition
+int8 order
+---
+#result definition
+IdCubos[] cubes_position
+---
+#feedback
+int8 feedback
