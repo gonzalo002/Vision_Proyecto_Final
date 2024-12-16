@@ -24,13 +24,10 @@ from codigo.generacion_figura import FigureGenerator
 from geometry2D import Geometry2D
 from copy import deepcopy
 
-
-
-
 class VisionTab:
     def __init__(self,) -> None:
         # --- ROOT ---
-        self.root = ttk.Window(title="Reconstrucción Cubos", themename="custom-vision")
+        self.root = ttk.Window(title="", themename="custom-vision")
         self.root.resizable(True, True)  # Permitir redimensionar la ventana
         system = platform.system()
 
