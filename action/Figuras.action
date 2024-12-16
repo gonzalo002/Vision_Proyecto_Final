@@ -1,8 +1,0 @@
-#goal definition
-int8 order
----
-#result definition
-int8[] figure_3d
----
-#feedback
-int8 feedback
