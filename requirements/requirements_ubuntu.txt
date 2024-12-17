@@ -1,6 +1,0 @@
-numpy
-opencv-contrib-python
-ttkbootstrap
-matplotlib
-Pillow==9.2.0
-pyyaml
