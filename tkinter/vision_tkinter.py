@@ -52,7 +52,8 @@ class VisionTab:
         self.file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
         
         # Definición de clases
-        self.ImageProcessorFrontal = ImageProcessor_Front()
+        self.ImageProcessorAlzado = ImageProcessor_Front()
+        self.ImageProcessorPerfil = ImageProcessor_Front()
         self.ImageProcessorPlanta = ImageProcessor_Top()
         self.CubeLocalizator = CubeTracker(f"{self.file_path}/data/camera_data/ost.yaml")
         self.Geometry3D = FigureGenerator()
@@ -227,6 +228,7 @@ class VisionTab:
 
         fig_3d = self.Geometry3D.generate_figure_from_matrix(np.full((5,5),-1), 
                                                              np.full((5,5),-1), 
+                                                             np.full((5,5),-1), 
                                                              paint=True,
                                                              tkinter=True)
         self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.F_figure_3D)
@@ -238,22 +240,22 @@ class VisionTab:
         self.F_10_1.grid_rowconfigure(0, weight=1)
         self.F_10_1.grid_columnconfigure(0, weight=1)
         self.F_10_1.grid_columnconfigure(1, weight=1)
-        self.process_button = ttk.Button(
+        self.B_process_3D = ttk.Button(
             self.F_10_1,
             text="PROCESAR",
             command=self.process_images,  # Función para procesar las imágenes
             bootstyle="secondary",  # Estilo del botón
         )
-        self.process_button.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.B_process_3D.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        self.clear_button = ttk.Button(
+        self.B_clear_3D = ttk.Button(
             self.F_10_1,
             text="BORRAR",
             state = ttk.DISABLED,
             command=self.clear_3D_images,  # Función para procesar las imágenes
             bootstyle="danger-outline",  # Estilo del botón
         )
-        self.clear_button.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.B_clear_3D.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
     def _fila_1_col_1(self):
         # --- GLOBAL FRAME ---
@@ -340,22 +342,22 @@ class VisionTab:
         self.F_ws_col_12.grid_rowconfigure(0, weight=1)
         self.F_ws_col_12.grid_columnconfigure(0, weight=1)
         self.F_ws_col_12.grid_columnconfigure(1, weight=1)
-        self.process_button = ttk.Button(
+        self.B_process_ws = ttk.Button(
             self.F_ws_col_12,
             text="PROCESAR",
             command=self.xy_process_images,  # Función para procesar las imágenes
             bootstyle="secondary",  # Estilo del botón
         )
-        self.process_button.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.B_process_ws.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        self.clear_button = ttk.Button(
+        self.B_clear_ws = ttk.Button(
             self.F_ws_col_12,
             text="BORRAR",
             state = ttk.DISABLED,
             command=self.xy_clear_images,  # Función para procesar las imágenes
             bootstyle="danger-outline",  # Estilo del botón
         )
-        self.clear_button.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.B_clear_ws.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
         
         self.LF_terminal = ttk.LabelFrame(self.F_11, text="  Terminal  ")
         self.LF_terminal.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
@@ -400,7 +402,8 @@ class VisionTab:
         for i in range(3):
             if self.F_inputs[i] is not None:
                 self.F_inputs[i].destroy()
-        self.F_inputs = []
+                self.F_inputs[i] = ttk.Frame(self.F_images[i], width=self.F_10_0.winfo_width()*0.5)
+                self.F_inputs[i].grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
 
         if self.V_modo_3d_cam.get() == 1:
             self.L_camOFF.config(font=("Montserrat", 10), foreground="#474B4E")
@@ -415,6 +418,7 @@ class VisionTab:
     def toggle_ws_mode(self):
         """Maneja el cambio de estado del Checkbutton del Frame 2D"""
         # Destruir el frame y vover a crearlo
+        self.CB_entries = []
         if self.F_input_ws is not None:
             self.F_input_ws.destroy()
             self.F_input_ws = ttk.Frame(self.F_img_ws)
@@ -475,8 +479,6 @@ class VisionTab:
         """Elimina los campos de entrada y botones para cargar imágenes"""
         self.CB_entries = []
         for i in range(3):
-            self.F_inputs.append(ttk.Frame(self.F_images[i], width=self.F_10_0.winfo_width()*0.5))
-            self.F_inputs[i].grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
             self.F_inputs[i].grid_columnconfigure(0, weight=1)
             self.F_inputs[i].grid_rowconfigure(0, weight=1)
             
@@ -486,7 +488,7 @@ class VisionTab:
                                               width=33))
             self.CB_entries[i].grid(row=0, column=0, padx=0, pady=0,sticky="nsew")
             if len(self.camera_controller.cameras) > i:
-                self.camera_entry1.set(self.camera_controller.camera_names[i])
+                self.CB_entries[i].set(self.camera_controller.camera_names[i])
         
         self.update_camera_3D()
         
@@ -495,8 +497,6 @@ class VisionTab:
         self.E_inputs = []
         self.B_browsers = []
         for i in range(3):
-            self.F_inputs.append(ttk.Frame(self.F_images[i], width=self.F_10_0.winfo_width()*0.5))
-            self.F_inputs[i].grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
             self.F_inputs[i].grid_columnconfigure(0, weight=1)
             self.F_inputs[i].grid_columnconfigure(1, weight=1)
             self.F_inputs[i].grid_rowconfigure(0, weight=1)
@@ -615,8 +615,8 @@ class VisionTab:
 
     def xy_process_images(self):
         if self.img_ws is not None:
-            self.xy_process_button.state([ttk.DISABLED])
-            self.xy_clear_button.state(["!disabled"])
+            self.B_process_ws.state([ttk.DISABLED])
+            self.B_clear_ws.state(["!disabled"])
             self.state_procesar_xy = False
             self.update_camera_ws()
             
@@ -677,16 +677,17 @@ class VisionTab:
         if (self.imgs[0] is not None) and (self.imgs[1] is not None) and (self.imgs[2] is not None):
             self.state_procesar = False
             self.update_camera_3D()
-            self.process_button.state([ttk.DISABLED])
-            self.clear_button.state(["!disabled"])
+            self.B_process_3D.state(["disabled"])
+            self.B_clear_3D.state(["!disabled"])
+
             
-            if self.V_modo_3d_cam != 1:
+            if self.V_modo_3d_cam.get() != 1:
                 for i in range(3):
-                    self.B_browsers[i].state(["!disabled"])
+                    self.B_browsers[i].state(["disabled"])
             
             img_resultado = [None, None, None]        
-            alzado_matrix, img_resultado[0] = self.ImageProcessorFrontal.process_image(self.imgs[0])          
-            perfil_matrix, img_resultado[1] = self.ImageProcessorFrontal.process_image(self.imgs[1])
+            alzado_matrix, img_resultado[0] = self.ImageProcessorAlzado.process_image(self.imgs[0])          
+            perfil_matrix, img_resultado[1] = self.ImageProcessorPerfil.process_image(self.imgs[1])
             planta_matrix, img_resultado[2] = self.ImageProcessorPlanta.process_image(self.imgs[2])
 
             #Resize
@@ -700,7 +701,7 @@ class VisionTab:
             if hasattr(self, "canvas_3d"):
                 self.canvas_3d.get_tk_widget().destroy()
 
-            fig_3d = self.Geometry3D.generate_figure_from_matrix(plant_matrix, front_matrix, paint=True, tkinter=True)
+            fig_3d = self.Geometry3D.generate_figure_from_matrix(planta_matrix, alzado_matrix, perfil_matrix, paint=True, tkinter=True)
             self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.F_figure_3D)
             self.canvas_3d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
 
@@ -709,7 +710,8 @@ class VisionTab:
         return img.resize(img_size)    
     
     def clear_3D_images(self):
-        self.clear_button.state([ttk.DISABLED])
+        self.B_clear_3D.state([ttk.DISABLED])
+        self.B_process_3D.state(["!disabled"])
         self.img_front = deepcopy(None)
         self.img_plant = deepcopy(None)
 
@@ -719,20 +721,20 @@ class VisionTab:
 
         fig_3d = self.Geometry3D.generate_figure_from_matrix(np.full((5,5),-1), 
                                                              np.full((5,5),-1),
+                                                             np.full((5,5),-1), 
                                                              paint=True, 
                                                              tkinter=True)
-        self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.LF_3d_fila)
+        self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.F_figure_3D)
         self.canvas_3d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
             
-        self.process_button.state(["!disabled"])
-        if self.V_modo_3d_cam == 1:
-            self.B_browse_1.state(["!disabled"])
-            self.B_browse_2.state(["!disabled"])
+        if self.V_modo_3d_cam.get() != 1:
+                for i in range(3):
+                    self.B_browsers[i].state(["!disabled"])
         self.state_procesar = True
         self.toggle_3d_mode()
     
     def xy_clear_images(self):
-        self.xy_clear_button.state([ttk.DISABLED])
+        self.B_clear_3D.state([ttk.DISABLED])
         self.xy_process_button.state(["!disabled"])
         self.state_procesar_xy = True
 
@@ -751,9 +753,11 @@ class VisionTab:
         self.camera_controller.stop()
         self.camera_controller.start(10)
         if self.camera_controller.camera_names != []:
-            self.camera_entry1['values'] = self.camera_controller.camera_names
-            self.camera_entry2['values'] = self.camera_controller.camera_names
+            if self.CB_entries != []:
+                for i in range(3):
+                    self.CB_entries[i]['values'] = self.camera_controller.camera_names
             self.CB_cam_ws['values'] = self.camera_controller.camera_names
+
         self.update_camera_3D()
         self.update_camera_ws()
         
