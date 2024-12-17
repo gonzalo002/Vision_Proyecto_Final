@@ -58,7 +58,7 @@ source proyecto-final-venv/bin/activate
 #### 4. Instala las dependencias.
 ```bash
 python -m pip install --upgrade pip
-pip install -r requirements/requirements.txt
+pip install -r requirements/requirements_ubuntu.txt
 ```
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
 ```powershell
