@@ -1,6 +1,6 @@
-numpy==2.2.0
-opencv-contrib-python==4.10.0.84
-ttkbootstrap==1.10.1
-matplotlib==3.10.0
-Pillow==9.2.0
-pyyaml==6.0.2
+numpy
+opencv-contrib-python
+ttkbootstrap
+matplotlib
+Pillow
+pyyaml
