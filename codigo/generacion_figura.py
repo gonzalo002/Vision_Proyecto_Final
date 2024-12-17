@@ -8,21 +8,18 @@ class FigureGenerator:
     def __init__(self) -> None:
         self.matriz3D = None
 
-    def generate_figure_from_matrix(self, plant_matrix, side_matrix, paint:bool = False, tkinter:bool=False):
+    def generate_figure_from_matrix(self, plant_matrix, side_matrix, figsize:tuple=(3,3), paint:bool = False, tkinter:bool=False):
 
         anchura, profundidad, plant_matrix_recortada = self._cut_matrix_finding_shape(plant_matrix)
         altura, anchura2, front_matrix_recortada = self._cut_matrix_finding_shape(side_matrix)
         
         if altura is None or anchura is None or profundidad is None or anchura != anchura2:
-            return self._paint_matrix(np.array([[[]]]), 1, tkinter)
+            return self._paint_matrix(np.array([[[]]]), figsize, tkinter)
 
         self.matriz3D = deepcopy(np.full((anchura, altura, profundidad), -1))
         matriz3D_positiva = deepcopy(np.full((anchura, altura, profundidad), -1))
         matriz3D_inversa = deepcopy(np.full((anchura, altura, profundidad), -1))
         front_matrix_recortada_inv = deepcopy(front_matrix_recortada)
-
-        # Definir el tamaño de cada cubo
-        size = 1
 
         for columna_planta in range(profundidad):
             columna_planta_inversa = profundidad - 1 - columna_planta
@@ -84,14 +81,10 @@ class FigureGenerator:
                     if not cube_found:
                         z= 0
                         matriz3D_inversa[x][z][y] = color_cubo
-
-        self._paint_matrix(matriz3D=matriz3D_positiva, size=size, tkinter=tkinter)
-
-        self._paint_matrix(matriz3D=matriz3D_inversa, size=size, tkinter=tkinter)
-                        
+                       
         self._compare_matrix(matriz3D_positiva, matriz3D_inversa)
         if paint:
-            return self._paint_matrix(self.matriz3D, size, tkinter)
+            return self._paint_matrix(self.matriz3D, figsize, tkinter)
         else:
             return self.matriz3D
                 
@@ -129,18 +122,18 @@ class FigureGenerator:
                     else:
                         self.matriz3D[i,j,k] = 4
 
-    def _paint_matrix(self, matriz3D, size, tkinter:bool=False):
-
+    def _paint_matrix(self, matriz3D, figsize:tuple=(3,3), tkinter:bool=False):
+        size = 1
         # Definición de las variables
         color_map = {0: 'red', 1: 'green', 2: 'blue', 3: 'yellow', 4: 'gray'}
         anchura, altura, profundidad = matriz3D.shape
 
         # Dependiendo de si lo mostramos en la interfaz o no, se realizan dos acciones de plt
         if tkinter:
-            fig_3d = plt.Figure(figsize=(8, 4), dpi=100)
+            fig_3d = plt.Figure(figsize=figsize, dpi=100)
             ax = fig_3d.add_subplot(111, projection='3d')
         else:
-            fig_3d, ax = plt.subplots(figsize=(8, 4), dpi=100, subplot_kw={'projection': '3d'})
+            fig_3d, ax = plt.subplots(figsize=figsize, dpi=100, subplot_kw={'projection': '3d'})
 
 
         # Se recorre la matriz para dibujar la figura
