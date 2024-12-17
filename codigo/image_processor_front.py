@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from copy import deepcopy
+import os
 
 class ImageProcessor_Front:
     ''' 
@@ -49,11 +50,6 @@ class ImageProcessor_Front:
         self.contour_img = None
         self.frame = None
         self.debug = False
-        self.i = 0
-
-        self.filtered_colors = []
-
-        
     
     def _preprocess_image(self) -> np.ndarray:
         """ 
@@ -80,6 +76,8 @@ class ImageProcessor_Front:
         # Combinación de los bordes detectados
         sobel_combined = cv2.magnitude(sobelx, sobely)
         sobel_combined = np.uint8(sobel_combined)
+
+        # sobel_combined = cv2.GaussianBlur(sobel_combined, (3,3), sigmaX=0)
 
         _, sobel_umbralized = cv2.threshold(sobel_combined, 150, 255, cv2.THRESH_BINARY)
         
@@ -142,23 +140,23 @@ class ImageProcessor_Front:
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
    
         # Definir los rangos de colores en HSV
-        # Verde:
+        # Verde: Hue entre 35 y 85, Saturación y Valor altos
         lower_green = np.array([30, 130, 0])   # Mínimo verde
         upper_green = np.array([110, 255, 255]) # Máximo verde
 
-        # Rojo: rango 1 
-        lower_red1 = np.array([0, 70, 70], np.uint8)    # Minimo rojo rango 1
-        upper_red1 = np.array([20, 255, 255], np.uint8)  # Maximo rojo rango 1
+        # Rojo: Hue entre 0 y 10, o entre 170 y 180, Saturación y Valor altos
+        lower_red1 = np.array([0, 70, 70], np.uint8)    # Rojo (primer rango) (0, 100, 100), (15, 255, 255)
+        upper_red1 = np.array([20, 255, 255], np.uint8)  # Rojo (primer rango)
 
-        # Rojo: rango 2
-        lower_red2 = np.array([170, 100, 100]) # Minimo rojo rango 2
-        upper_red2 = np.array([179, 255, 255]) # Maximo rojo rango 2
+        # Rango superior para el rojo (170-180 grados)
+        lower_red2 = np.array([170, 100, 100])
+        upper_red2 = np.array([179, 255, 255])
 
-        # Azul:
+        # Azul: Hue entre 100 y 140, Saturación y Valor altos
         lower_blue = np.array([100, 135, 115], np.uint8)   # Mínimo azul
         upper_blue = np.array([130, 255, 255], np.uint8) # Máximo azul
 
-        # Amarillo: 
+        # Amarillo: Hue entre 20 y 40, Saturación y Valor altos
         lower_yellow = np.array([20, 70, 30], np.uint8)  # Mínimo amarillo
         upper_yellow = np.array([60, 255, 255], np.uint8)# Máximo amarillo
 
@@ -167,7 +165,7 @@ class ImageProcessor_Front:
         filtered_images:list = []
         
         for i in range(len(lower_values)):
-            # Aplicar un umbral de valor mínimo para eliminar el fondo negro
+            # Aplicar un umbral de valor mínimo para eliminar el fondo negro (valor bajo)
             mask = cv2.inRange(hsv, lower_values[i], upper_values[i]) 
             value_threshold = 70  # Umbral mínimo de valor (a partir de este valor consideramos los colores)
             value_mask = hsv[:, :, 2] > value_threshold  # Solo seleccionamos los píxeles con valor mayor que el umbral
@@ -185,10 +183,12 @@ class ImageProcessor_Front:
             alpha = 1.3
             beta = 1
 
+            # contrast_img = cv2.morphologyEx(filtered_images[i], cv2.MORPH_ERODE, np.ones((3, 3), np.uint8))
             contrast_img = cv2.convertScaleAbs(filtered_images[i], alpha=alpha, beta=beta) 
             contrast_img = cv2.morphologyEx(contrast_img, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+            # contrast_img = cv2.morphologyEx(contrast_img, cv2.MORPH_ERODE, np.ones((5, 5), np.uint8))
             contrast_images.append(contrast_img)
-                
+        
         gray_r = cv2.cvtColor(contrast_images[0], cv2.COLOR_BGR2GRAY)
         _, r_inv = cv2.threshold(gray_r, 50, 255, cv2.THRESH_BINARY)
 
@@ -206,7 +206,33 @@ class ImageProcessor_Front:
         _, y_inv = cv2.threshold(gray_y, 50, 255, cv2.THRESH_BINARY)                    
              
         resultado = self.filtered_colors = [r_inv, b_inv, g_inv, y_inv]
-      
+        
+        # kernel = np.ones((5, 5), np.uint8)
+
+        # for i, img in enumerate(resultado):
+        #     resultado[i] = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=1)
+        #     mask = np.zeros_like(resultado[i])
+
+        #     contours, _ = cv2.findContours(resultado[i], cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #     for contour in contours:
+        #         # Obtener el rectángulo delimitador del contorno (x, y, w, h)
+        #         x, y, w, h = cv2.boundingRect(contour)
+                
+        #         # Hacer el rectángulo ligeramente más pequeño
+        #         reduction = 10  # Cuánto reducir el tamaño
+        #         x_small = x + reduction
+        #         y_small = y + reduction
+        #         w_small = w - 2 * reduction
+        #         h_small = h - 2 * reduction
+                
+        #         try:
+        #             # Dibujar el cuadrado más pequeño dentro del rectángulo delimitador
+        #             cv2.rectangle(mask, (x_small, y_small), (x_small + w_small, y_small + h_small), 255, -1)
+        #         except:
+        #             pass
+        #     resultado[i] = mask
+
+            
         if self.debug:
              cv2.imshow('Red Only', r_inv)
              cv2.imshow('Green Only', g_inv)
@@ -231,6 +257,10 @@ class ImageProcessor_Front:
                 area_size.append(area)
 
         mode_cubes = np.median(area_size)
+        large_contours = []
+        for contour in correct_contour:
+                
+            large_contours.append(contour) # Sin filtrar por cuadraticidad
 
         if self.debug:
             print(f'Areas : {area_size}')
@@ -244,11 +274,15 @@ class ImageProcessor_Front:
             @param contour (list) - Un contorno detectado en la imagen.
             @return color (int) - El color detectado como un valor de índice (0: Rojo, 1: Verde, 2: Azul, 3: Amarillo).
         '''
-        color_dict = {0:0, 1:2, 2:1, 3:3} # Comprobar antes la matriz azul (2) que la verde (1)
         for i, color in enumerate(self.filtered_colors):
             if color[center[1],center[0]] > 20:
-                return color_dict[i]
-        return -1
+                if i == 1:
+                    return 2
+                if i == 2:
+                    return 1
+                else:
+                    return i
+        return 4
 
     def _align_equidistant(self, points:list, side_length:float) -> list:
         ''' 
@@ -270,11 +304,11 @@ class ImageProcessor_Front:
 
         if self.debug:
             for x in lista_resultado_x:
-                self.contour_img = cv2.line(self.contour_img, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (255, 0, 255), 2)
+                self.contour_img = cv2.line(self.contour_img, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (30, 30, 30), 1)
 
             # Dibujar las líneas horizontales
             for y in lista_resultado_y:
-                self.contour_img = cv2.line(self.contour_img, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (255, 0, 255), 2)
+                self.contour_img = cv2.line(self.contour_img, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (30, 30, 30), 1)
 
         # Alinear los puntos a la cuadrícula más cercana
         aligned_points_indices = []  # Lista para almacenar los índices de los puntos alineados
@@ -378,7 +412,7 @@ class ImageProcessor_Front:
             centers.append(center)
             color = self._get_color(center=center)
             colors.append(color)
-            if color == -1:
+            if color == 4:
                 print('Color not Found')
             areas.append(max(w,h))
 
@@ -386,6 +420,7 @@ class ImageProcessor_Front:
 
             # Visualizar el contorno y el color en la imagen
             cv2.circle(self.contour_img, center, 5, (0, 0, 0), -1)
+            # cv2.putText(self.contour_img, str(color), (center[0], center[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 2)
         
         if len(large_contours) > 0:
                 self.matrix = self._map_to_matrix(centers, colors, areas)
@@ -393,15 +428,11 @@ class ImageProcessor_Front:
         if mostrar:
             print(f'Matriz Front:\n {self.matrix}')
             cv2.imshow('Contoured Image', self.contour_img)
-            # print(self.matrix)
 
-        if cv2.waitKey(0) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
+        if mostrar or debug:
+            if cv2.waitKey(0) & 0xFF == ord('q'):
+                cv2.destroyAllWindows()
         
-        print(f'Matriz Front:\n {self.matrix}')
-
-        cv2.imwrite(f"Figura_{self.i}_F.png", frame)
-        self.i +=1
 
         return self.matrix, self.contour_img
 
@@ -411,13 +442,24 @@ if __name__ == "__main__":
     # Crear instancia de ImageProcessor con la ruta de la imagen
     use_cam = False
     num_cam = 6
-    num_img = 0
+    num_img = 3
     if use_cam:
         cam = cv2.VideoCapture(num_cam)
         if cam.isOpened():
             _, frame = cam.read()
     else:
-        ruta = f'/home/laboratorio/ros_workspace/src/proyecto_final/data/example_img/ImagenesBIEN/Figura_{num_img}_F.png'
+        # for i in range(8, 25, 1):
+            # num = i
+            # ruta = f'/home/laboratorio/ros_workspace/src/proyecto_final/data/example_img/Figuras_Lateral/Figura_{num}_L.png'
+            # frame = cv2.imread(ruta)
+
+            # processor = ImageProcessor_Front()
+            # # frame = cv2.imread(ruta)
+            # processor.process_image(frame, mostrar = True, debug=True)
+            # # print(np.array2string(matriz, separator=', ', formatter={'all': lambda x: f'{int(x)}'}))
+            # # print(np.array(matriz))
+        file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
+        ruta = f'{file_path}/data/Figuras_Lateral/Figura_{num_img}_L.png'
         frame = cv2.imread(ruta)
 
     processor = ImageProcessor_Front()
