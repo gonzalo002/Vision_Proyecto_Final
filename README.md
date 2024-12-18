@@ -67,7 +67,9 @@ pip install -r requirements/requirements.txt
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
 Descomprimir y configurar las fuentes del Tkinter.
 ```bash
-unzip requiremets/montserrat.zip -d /usr/share/fonts/truetype/montserrat/
+unzip requirements/montserrat.zip -d /usr/share/fonts/truetype/montserrat/
+```
+```bash
 cp /usr/share/fonts/truetype/montserrat/static/Montserrat-Regular.ttf proyecto-final-venv/include/
 ```
 Copiar el tema personalizado del Tkinter.
