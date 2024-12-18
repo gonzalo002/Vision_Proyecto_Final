@@ -67,13 +67,8 @@ unzip requiremets/montserrat.zip -d /usr/share/fonts/truetype/montserrat/
 cp /usr/share/fonts/truetype/montserrat/static/Montserrat-Regular.ttf proyecto-final-venv/include/
 ```
 Copiar el tema personalizado del Tkinter.
-
-Primero, ten en cuenta que tendrás que poner la versión correcta de Python que tengas instalada en la ruta del directorio.
 ```bash
-python3 --version
-```
-```bash
-cp requirements/user.py proyecto-final-venv/lib/python<version>/site-packages/ttkbootstrap/themes/
+cp requirements/user.py proyecto-final-venv/lib/python$(python3 --version 2>&1 | awk '{print $2}' | cut -d. -f1,2)/site-packages/ttkbootstrap/themes/
 ```
 #### 6. Desactiva el entorno virtual.
 ```bash
