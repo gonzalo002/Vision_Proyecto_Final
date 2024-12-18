@@ -34,9 +34,8 @@ class FigureGenerator:
 
         # Definir el tamaño de cada cubo
         size = 1
-
-        for columna_planta in range(anchura-1, -1, -1):
-            for fila_planta in range(0, profundidad):
+        for fila_planta in range(0, profundidad):
+            for columna_planta in range(anchura-1, -1, -1):
                 if matriz_planta_recortada[fila_planta][columna_planta] != -1:
                     color_cubo = matriz_planta_recortada[fila_planta][columna_planta]
                     columna_perfil = profundidad - fila_planta -1
@@ -67,6 +66,7 @@ class FigureGenerator:
                         elif cube_found and matriz_perfil_recortada[fila_perfil][columna_perfil] == matriz_alzado_recortada[fila_alzado][columna_alzado] and matriz_alzado_recortada[fila_alzado][columna_alzado] != 5:
                             matriz3D[x][z][y] = matriz_perfil_recortada[fila_perfil][columna_perfil]
                             matriz_perfil_recortada[fila_perfil][columna_perfil] = matriz_alzado_recortada[fila_alzado][columna_alzado] = 5
+
                         elif cube_found and matriz_perfil_recortada[fila_perfil][columna_perfil] != 5 and matriz_alzado_recortada[fila_alzado][columna_alzado] == 5:
                             for i in range(columna_planta, anchura):
                                 if matriz_perfil_recortada[fila_perfil][columna_perfil] == matriz_planta_recortada[fila_planta][i]:
@@ -76,7 +76,7 @@ class FigureGenerator:
                                 matriz_perfil_recortada[fila_perfil][columna_perfil] = 5
 
                         elif cube_found and matriz_alzado_recortada[fila_alzado][columna_alzado] != 5 and matriz_perfil_recortada[fila_perfil][columna_perfil] == 5:
-                            for i in range(fila_planta, profundidad):
+                            for i in range(fila_planta, 0):
                                 if matriz_alzado_recortada[fila_alzado][columna_alzado] == matriz_planta_recortada[i][columna_planta]:
                                     matriz3D[x][z][y] = 4
                             if matriz3D[x][z][y] != 4:
