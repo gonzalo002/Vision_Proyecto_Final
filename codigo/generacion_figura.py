@@ -10,7 +10,7 @@ class FigureGenerator:
 
     def generate_figure_from_matrix(self, matriz_planta:list, matriz_alzado:list, matriz_perfil:list, figsize:tuple=(3,3), paint:bool = False, tkinter:bool=False):
 
-        anchura, profundidad, matriz_planta_recortada = self._cut_matrix_finding_shape(matriz_planta)
+        profundidad, anchura, matriz_planta_recortada = self._cut_matrix_finding_shape(matriz_planta)
         altura, anchura2, matriz_alzado_recortada = self._cut_matrix_finding_shape(matriz_alzado)
         altura2, profundidad2, matriz_perfil_recortada = self._cut_matrix_finding_shape(matriz_perfil)
         
@@ -29,18 +29,18 @@ class FigureGenerator:
             self.message_type = 3
             return self._paint_matrix(np.array([[[]]]), figsize, tkinter)
 
-        self.matriz3D = deepcopy(np.full((profundidad, altura, anchura), -1))
-        matriz3D = deepcopy(np.full((profundidad, altura, anchura), -1))
+        self.matriz3D = deepcopy(np.full((anchura, altura, profundidad), -1))
+        matriz3D = deepcopy(np.full((anchura, altura, profundidad), -1))
 
         # Definir el tamaño de cada cubo
         size = 1
 
-        for columna_planta in range(profundidad-1, -1, -1):
-            for fila_planta in range(anchura):
+        for columna_planta in range(anchura-1, -1, -1):
+            for fila_planta in range(0, profundidad):
                 if matriz_planta_recortada[fila_planta][columna_planta] != -1:
                     color_cubo = matriz_planta_recortada[fila_planta][columna_planta]
-                    columna_perfil = anchura - fila_planta -1
-                    columna_alzado = x = profundidad - columna_planta - 1
+                    columna_perfil = profundidad - fila_planta -1
+                    columna_alzado = x = anchura - columna_planta - 1
                     y = fila_planta
                     cube_found = False
                     for fila_alzado in range(altura):
@@ -68,12 +68,28 @@ class FigureGenerator:
                             matriz3D[x][z][y] = matriz_perfil_recortada[fila_perfil][columna_perfil]
                             matriz_perfil_recortada[fila_perfil][columna_perfil] = matriz_alzado_recortada[fila_alzado][columna_alzado] = 5
                         elif cube_found and matriz_perfil_recortada[fila_perfil][columna_perfil] != 5 and matriz_alzado_recortada[fila_alzado][columna_alzado] == 5:
-                            matriz3D[x][z][y] = matriz_perfil_recortada[fila_perfil][columna_perfil]
-                            matriz_perfil_recortada[fila_perfil][columna_perfil] = 5
+                            for i in range(columna_planta, anchura):
+                                if matriz_perfil_recortada[fila_perfil][columna_perfil] == matriz_planta_recortada[fila_planta][i]:
+                                    matriz3D[x][z][y] = 4
+                            if matriz3D[x][z][y] != 4:
+                                matriz3D[x][z][y] = matriz_perfil_recortada[fila_perfil][columna_perfil]
+                                matriz_perfil_recortada[fila_perfil][columna_perfil] = 5
 
                         elif cube_found and matriz_alzado_recortada[fila_alzado][columna_alzado] != 5 and matriz_perfil_recortada[fila_perfil][columna_perfil] == 5:
-                            matriz3D[x][z][y] = matriz_alzado_recortada[fila_alzado][columna_alzado] 
-                            matriz_alzado_recortada[fila_alzado][columna_alzado]  = 5
+                            for i in range(fila_planta, profundidad):
+                                if matriz_alzado_recortada[fila_alzado][columna_alzado] == matriz_planta_recortada[i][columna_planta]:
+                                    matriz3D[x][z][y] = 4
+                            if matriz3D[x][z][y] != 4:
+                                matriz3D[x][z][y] = matriz_alzado_recortada[fila_alzado][columna_alzado]
+                                matriz_alzado_recortada[fila_alzado][columna_alzado] = 5
+
+                        elif cube_found and matriz_alzado_recortada[fila_alzado][columna_alzado] != 5 and matriz_perfil_recortada[fila_perfil][columna_perfil] != 5:
+                            if columna_planta != profundidad-1:
+                                matriz3D[x][z][y] = matriz_perfil_recortada[fila_perfil][columna_perfil]
+                                matriz_perfil_recortada[fila_perfil][columna_perfil] = 5
+                            else:
+                                matriz3D[x][z][y] = matriz_alzado_recortada[fila_alzado][columna_alzado]
+                                matriz_alzado_recortada[fila_alzado][columna_alzado] = 5
 
                         elif cube_found and matriz_alzado_recortada[fila_alzado][columna_alzado] == 5 and matriz_perfil_recortada[fila_perfil][columna_perfil] == 5:
                             matriz3D[x][z][y] = 4
