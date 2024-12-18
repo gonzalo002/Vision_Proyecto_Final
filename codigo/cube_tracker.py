@@ -1,7 +1,6 @@
-import cv2
+import cv2, yaml, os
 import numpy as np
 from copy import deepcopy
-import yaml, os
 from math import pi
 
 class CubeTracker:
@@ -32,12 +31,12 @@ class CubeTracker:
     def __init__(self, cam_calib_path:str, aruco_dict=cv2.aruco.DICT_4X4_50, marker_length:float=0.05) -> None:
         '''
         Inicializa la clase y configura los parámetros de Aruco.
-            @param aruco_dict (int) - Diccionario de Aruco (por defecto, 4x4 con 50 marcadores).
-            @param marker_length (float) - Longitud del lado del marcador en metros.
-            @param camera_matrix (numpy array) - Matriz intrínseca de la cámara.
+            @param aruco_dict (int) - Diccionario de Aruco (por defecto, 4x4 con 50 marcadores).\n
+            @param marker_length (float) - Longitud del lado del marcador en metros.\n
+            @param camera_matrix (numpy array) - Matriz intrínseca de la cámara.\n
             @param dist_coeffs (numpy array) - Coeficientes de distorsión de la cámara.
         '''
-        # Definición de variables
+        # --- DEFINICIÓN DE VARIABLES ---
         self.frame = None
         self.aruco_length = marker_length
         self.aruco_corner_pos = None
@@ -45,14 +44,20 @@ class CubeTracker:
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.debug = False
         self.i = 0
+
+        # VARIABLE PARA TKINTER
         self.message = None
-        self.message_type = 0 # 1=Info, 2=Warn, 3=Error  
+        self.message_type = None # 1=Info, 2=Warn, 3=Error  
 
         # Obtener calibración de la cámara
         self._get_camara_calibration(cam_calib_path)
 
 
-    def _get_camara_calibration(self, path:str)->None:
+    def _get_camara_calibration(self, path:str) -> None:
+        '''
+        Lee y carga los parámetros de calibración de cámara desde un archivo YAML.
+            @param path (str) - Ruta al archivo de calibración de cámara.
+        '''
         try:
             with open(path, '+r') as f:
                 fichero =  yaml.load(f, yaml.Loader)
@@ -61,6 +66,7 @@ class CubeTracker:
             self.message = "No se ha encontrado el directorio del fichero de calibración."
             self.message_type = 3
 
+        # Extraer matriz intrínseca y coeficientes de distorsión de la cámara
         self.camera_matrix = np.array(fichero["camera_matrix"]["data"]).reshape(fichero["camera_matrix"]["rows"], fichero["camera_matrix"]["cols"])
         self.dist_coeffs = np.array(fichero["distortion_coefficients"]["data"])
         
@@ -68,7 +74,7 @@ class CubeTracker:
     def _aplicar_filtro_grises(self, frame:np.ndarray) -> np.ndarray:
         ''' 
         Convierte una imagen de color a escala de grises.
-            @param frame (numpy array) - Imagen en formato BGR.
+            @param frame (numpy array) - Imagen en formato BGR.\n
             @return gray_frame (numpy array) - Imagen en escala de grises.
         '''
         return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -76,7 +82,7 @@ class CubeTracker:
     def _aplicar_filtro_hsv(self, frame:np.ndarray) -> np.ndarray:
         ''' 
         Convierte una imagen de color a espacio de color HSV.
-            @param frame (numpy array) - Imagen en formato BGR.
+            @param frame (numpy array) - Imagen en formato BGR.\n
             @return hsv_frame (numpy array) - Imagen en espacio de color HSV.
         '''
         return cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -84,7 +90,7 @@ class CubeTracker:
     def _procesar_umbral_otsu(self, gray:np.ndarray) -> np.ndarray:
         ''' 
         Aplica un umbral de Otsu para binarizar la imagen.
-            @param gray (numpy array) - Imagen en escala de grises.
+            @param gray (numpy array) - Imagen en escala de grises.\n
             @return otsu_thresh (numpy array) - Imagen binarizada tras el umbral de Otsu.
         '''
         _, otsu_thresh = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)
@@ -96,7 +102,7 @@ class CubeTracker:
     def _detectar_bordes(self, imagen:np.ndarray) -> np.ndarray:
         ''' 
         Detecta los bordes de una imagen utilizando el filtro de Canny.
-            @param imagen (numpy array) - Imagen de entrada (en escala de grises o color).
+            @param imagen (numpy array) - Imagen de entrada (en escala de grises o color).\n
             @return edges (numpy array) - Imagen con bordes detectados.
         '''
         desenfocada = cv2.GaussianBlur(imagen, (5, 5), 0)
@@ -111,15 +117,14 @@ class CubeTracker:
     def _encontrar_contornos(self, edges:np.ndarray) -> list:
         ''' 
         Encuentra los contornos en una imagen binarizada.
-            @param edges (numpy array) - Imagen binarizada con bordes detectados.
+            @param edges (numpy array) - Imagen binarizada con bordes detectados.\n
             @return contours (list) - Lista de contornos encontrados.
         '''
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        # Filtrar los contornos externos que tienen un padre
         filtered_contours = []
-        for i, (next_bro, prev_bro, child, parent) in enumerate(hierarchy[0]):
-            if next_bro != 0:  # Contorno exterior con padre
+        for i, (next_bro, _, _, _) in enumerate(hierarchy[0]):
+            if next_bro != 0:
                 filtered_contours.append(contours[i])
 
         if self.debug:
@@ -130,10 +135,22 @@ class CubeTracker:
         return filtered_contours
 
 
-    def _identificar_cubo_y_color(self, contours: list, frame: np.ndarray, hsv_frame: np.ndarray, gray: np.ndarray, area_size: int = 1000, mostrar:bool = False) -> np.ndarray:
-        ''' 
-        Identifica cubos en la imagen y les asigna un color basado en el espacio HSV.
-        '''
+    def _identificar_cubo_y_color(self, contours: list, frame: np.ndarray, hsv_frame: np.ndarray, gray: np.ndarray, mostrar:bool = False) -> list:
+        """
+            Identifica cubos en una imagen basada en sus contornos, evalúa si los contornos tienen forma cuadrada y les asigna un color predominante según el espacio de color HSV. 
+            También calcula información relevante como posición y ángulo de los cubos detectados.
+                @param contours (list) - Lista de contornos detectados en la imagen.\n
+
+                @param frame (np.ndarray) - Imagen original en formato BGR (color).\n
+                @param hsv_frame (np.ndarray) - Imagen en el espacio de color HSV.\n
+                @param gray (np.ndarray) - Imagen en escala de grises, utilizada para generar máscaras y otras operaciones de procesamiento.\n
+                @param mostrar (bool) - Establece si se dibujará información adicional sobre los cubos detectados en la imagen de salida (posición y ángulo). Por defecto es `False`.\n
+                @return dict (list) - Devuelve una lista de diccionarios, donde cada diccionario contiene información sobre un cubo detectado:\n
+                    -"Position": Distancia en coordenadas XY desde un punto de referencia (probablemente el origen).
+                    -"Angle": Ángulo de orientación del cubo en radianes.
+                    -"Color": Índice del color predominante detectado en el cubo.
+        """
+
         # Definir el mapa de colores y sus índices numéricos
         colores = {0: (0, 0, 255), 1: (0, 255, 0), 2: (255, 0, 0), 3: (0, 255, 255)}  # RGB
         
@@ -197,9 +214,9 @@ class CubeTracker:
     def _get_dominant_color(self, contour: np.ndarray, hsv_frame: np.ndarray) -> int:
         ''' 
         Determina el color (rojo, verde, azul y amarillo) predominante dentro de un contorno basado en el espacio de color HSV.
-        @param contour (numpy array) - Contorno del que se quiere extraer el color predominante.
-        @param hsv_frame (numpy array) - Imagen en espacio HSV.
-        @return dominant_color (int) - Índice numérico que representa el color predominante (0=Rojo, 1=Verde, 2=Azul, 3=Amarillo).
+            @param contour (numpy array) - Contorno del que se quiere extraer el color predominante.\n
+            @param hsv_frame (numpy array) - Imagen en espacio HSV.\n
+            @return dominant_color (int) - Índice numérico que representa el color predominante (0=Rojo, 1=Verde, 2=Azul, 3=Amarillo).\n
         '''
         # Definir los rangos de colores en el espacio HSV
         color_ranges = {
@@ -238,13 +255,11 @@ class CubeTracker:
         
         return color_map.get(dominant_color)
 
-
-
     
     def _detectar_aruco(self, frame: np.ndarray) -> None:
         '''
         Detecta un marcador Aruco en la imagen y calcula su posición y orientación.
-            @param frame (numpy array) - Imagen en formato escala de grises.
+            @param frame (numpy array) - Imagen en formato escala de grises.\n
         '''
         corners, ids, _ = cv2.aruco.detectMarkers(frame, self.aruco_dict, parameters=self.aruco_params)
         
@@ -277,11 +292,11 @@ class CubeTracker:
         else:
             return False, False
     
-    def _calcular_lados(self, corners):
+    def _calcular_lados(self, corners:np.ndarray) -> float:
         '''
-        Calcula las distancias entre las esquinas del marcador ArUco.
-        :param corners: Esquinas del marcador (4 puntos).
-        :return: Lista con las longitudes de los lados en píxeles.
+        Calcula la longitud de los lados de un marcador Aruco en píxeles.
+            @param corners (numpy array) - Coordenadas de las esquinas del marcador Aruco.\n
+            @return side_length (float) - Longitud promedio de los lados del marcador en píxeles.
         '''
         # Esquinas del marcador
         #p1, p2, p3, p4 = corners
@@ -297,33 +312,33 @@ class CubeTracker:
         
         return np.mean(distancias)
     
-    def _distancia(self, p1, p2):
+    def _distancia(self, p1:np.ndarray, p2:np.ndarray) -> float:
         '''
         Calcula la distancia euclidiana entre dos puntos (x1, y1) y (x2, y2).
-        :param p1: Primer punto (x1, y1).
-        :param p2: Segundo punto (x2, y2).
-        :return: Distancia entre los dos puntos.
+            @param p1 (numpy array): Primer punto (x1, y1).\n
+            @param p2 (numpy array): Segundo punto (x2, y2).\n
+            @return (float): Distancia entre los dos puntos.
         '''
         return np.sqrt((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)
     
-    def _distancia_xy(self, p_aruco, p_cubo):
+    def _distancia_xy(self, p_aruco:np.ndarray, p_cubo:tuple) -> tuple:
         '''
         Calcula la distancia euclidiana entre dos puntos (x1, y1) y (x2, y2).
-        :param p1: Primer punto (x1, y1).
-        :param p2: Segundo punto (x2, y2).
-        :return: Distancia entre los dos puntos.
+            @param p_aruco (numpy array): Primer punto (x1, y1).\n
+            @param p_cubo (tuple): Segundo punto (x2, y2).\n
+            @return (tuple): Distancia entre los dos puntos.
         '''
-        x = (-1)*((p_aruco[0] - p_cubo[0])*self.aruco_length/self.side_lengths_px)
-        y = (p_aruco[1] - p_cubo[1])*self.aruco_length/self.side_lengths_px
+        x = float((-1)*((p_aruco[0] - p_cubo[0])*self.aruco_length/self.side_lengths_px))
+        y = float((p_aruco[1] - p_cubo[1])*self.aruco_length/self.side_lengths_px)
         
         return (round(x,4), round(y,4))
     
-    def _expand_corners(self, corners, factor=1.2):
+    def _expand_corners(self, corners:np.ndarray, factor:float=1.2) -> list:
         """
         Expande las esquinas del marcador ArUco aumentando su tamaño.
-        :param corners: Esquinas de los marcadores detectados (forma de (1, 4, 2)).
-        :param factor: Factor de escala para aumentar o reducir el tamaño del marcador.
-        :return: Nuevas coordenadas de las esquinas ajustadas.
+            @param corners (numpy array): Esquinas de los marcadores detectados (forma de (1, 4, 2)).\n
+            @param factor (float): Factor de escala para aumentar o reducir el tamaño del marcador.\n
+            @return (list): Nuevas coordenadas de las esquinas ajustadas.
         """
         expanded_corners = []
 
@@ -341,12 +356,11 @@ class CubeTracker:
 
         return expanded_corners
 
-    def process_image(self, frame:np.ndarray, area_size:int=1000, mostrar:bool = False, debug:bool = False) -> list:
+    def process_image(self, frame:np.ndarray, mostrar:bool = False, debug:bool = False) -> list:
         ''' 
         Procesa una imagen para detectar cubos y sus colores, y muestra los resultados.
-            @param frame (numpy array) - Imagen de entrada en formato BGR.
-            @param area_size (int) - Umbral mínimo de área para considerar un contorno como válido. Por defecto, 2000.
-            @param mostrar (bool) - Si es True, muestra la imagen procesada. Por defecto, False.
+            @param frame (numpy array) - Imagen de entrada en formato BGR.\n
+            @param mostrar (bool) - Si es True, muestra la imagen procesada. Por defecto, False.\n
             @return resultado (list) - Imagen procesada con cubos identificados y etiquetados.
         '''
         self.debug = debug
@@ -371,7 +385,7 @@ class CubeTracker:
         edges = self._detectar_bordes(morph_clean)
         contours = self._encontrar_contornos(edges)
         
-        resultado = self._identificar_cubo_y_color(contours, aruco_frame, hsv_frame, gray, area_size, mostrar)
+        resultado = self._identificar_cubo_y_color(contours, aruco_frame, hsv_frame, gray, mostrar)
 
         if mostrar:
             cv2.imshow('Contoured Image', self.imagen_analizada)
@@ -404,7 +418,7 @@ if __name__ == "__main__":
         ruta = f'{file_path}/data/cubos_exparcidos/Cubos_Exparcidos_{num}.png'
         frame = cv2.imread(ruta)
 
-    _, resultado = cube_tracker.process_image(frame, area_size=1000, mostrar=True, debug=True)
+    _, resultado = cube_tracker.process_image(frame, mostrar=True, debug=True)
     print(resultado)
     if use_cam:
         cam.release()
