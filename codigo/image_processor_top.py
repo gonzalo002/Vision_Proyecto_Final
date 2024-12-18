@@ -46,6 +46,8 @@ class ImageProcessor_Top:
         self.colors = []
         
         self.diccionario_colores = {0: (0,0,255), 1: (0,255,0), 2: (255,0,0), 3: (0, 255, 255)}
+        self.message = None
+        self.message_type = 0 # 1=Info, 2=Warn, 3=Error  
         
         try:
             file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
@@ -53,6 +55,8 @@ class ImageProcessor_Top:
                 self.base_area = yaml.safe_load(file)
         except:
             print('Calibrar Cubo!!')
+            self.message = "El cubo no ha sido calibrado, hazlo antes de empezar."
+            self.message_type = 3
         
     def _preprocess_image(self) -> np.ndarray:
         """ 
@@ -320,6 +324,8 @@ class ImageProcessor_Top:
             return result
         else:
             print('Contornos no encontrados')
+            self.message = "No se ha encontrado ningún contorno."
+            self.message_type = 3
             return []
     
 
@@ -391,6 +397,7 @@ class ImageProcessor_Top:
             row = 4 - center[1] # Invertir el eje Y
             col = center[0]
             matrix[row][col] = color
+
         return matrix
 
     
@@ -415,12 +422,16 @@ class ImageProcessor_Top:
         self.base_area = np.max(areas)
         if self.base_area < 2000:
             try:
+                self.message = "El cubo se ha calibrado correctamente."
+                self.message_type = 1
                 self.base_area = float(self.base_area)
                 file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
                 with open(f'{file_path}/data/necessary_data/cube_area.yaml', 'r') as file:
                     yaml.dump(self.base_area, file)
             except:
                 print('Fallo al calibrar')
+                self.message = "Ha habido un error al calibrar el área del cubo."
+                self.message_type = 3
         
 
     def process_image(self, frame:np.ndarray, calibration:bool = False, mostrar:bool=False, debug:bool = False)->tuple:
@@ -439,6 +450,8 @@ class ImageProcessor_Top:
                 - matrix (numpy array) - Matriz 5x5 que representa la cuadrícula con los colores detectados.
                 - contour_img (numpy array) - Imagen con los contornos y anotaciones dibujados.
         '''
+        self.message = "Se ha empezado a calibrar la imagen."
+        self.message_type = 1
         self.matrix = deepcopy(np.full((self.matrix_size, self.matrix_size), -1))
         self.frame = deepcopy(frame)
         self.contour_img = deepcopy(self.frame)
@@ -452,6 +465,8 @@ class ImageProcessor_Top:
             
             if len(self.centers) > 0:
                 self.matrix = self._map_to_matrix(self.centers, self.colors, self.areas)
+                self.message = "Se ha procesado la imagen."
+                self.message_type = 1
 
             if mostrar:
                 print(f'Matriz Top:\n {self.matrix}')

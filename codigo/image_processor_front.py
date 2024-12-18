@@ -50,8 +50,9 @@ class ImageProcessor_Front:
         self.frame = None
         self.debug = False
         self.i = 0
-
-        self.filtered_colors = []   
+        self.filtered_colors = []
+        self.message = None
+        self.message_type = 0 # 1=Info, 2=Warn, 3=Error   
     
     def _preprocess_image(self) -> np.ndarray:
         """ 
@@ -248,9 +249,9 @@ class ImageProcessor_Front:
                 min_side = min(side_lengths)
                 
                 # Si la diferencia entre los lados es pequeña, probablemente es un cuadrado
-                if max_side - min_side < 50:  # El umbral de diferencia puede ajustarse
-                    # Si los lados son casi iguales, es un cuadrado
-                    large_contours.append(contour)
+                # if max_side - min_side < 50:  # El umbral de diferencia puede ajustarse
+                #     # Si los lados son casi iguales, es un cuadrado
+                large_contours.append(contour)
 
         if self.debug:
             print(f'Areas : {area_size}')
@@ -408,7 +409,12 @@ class ImageProcessor_Front:
             cv2.circle(self.contour_img, center, 5, (0, 0, 0), -1)
         
         if len(large_contours) > 0:
-                self.matrix = self._map_to_matrix(centers, colors, areas)
+            self.matrix = self._map_to_matrix(centers, colors, areas)
+            self.message = "Se ha procesado la imagen."
+            self.message_type = 1
+        else:
+            self.message = "No se ha encontrado ningún contorno."
+            self.message_type = 3
 
         if mostrar:
             print(f'Matriz Front:\n {self.matrix}')
@@ -418,7 +424,6 @@ class ImageProcessor_Front:
         if cv2.waitKey(0) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
         
-        print(f'Matriz Front:\n {self.matrix}')
 
         cv2.imwrite(f"Figura_{self.i}_F.png", frame)
         self.i +=1

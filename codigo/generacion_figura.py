@@ -7,6 +7,8 @@ from copy import deepcopy
 class FigureGenerator:
     def __init__(self) -> None:
         self.matriz3D = None
+        self.message = None
+        self.message_type = 0 # 1=Info, 2=Warn, 3=Error
 
     def generate_figure_from_matrix(self, plant_matrix, front_matrix, side_matrix, figsize:tuple=(3,3), paint:bool = False, tkinter:bool=False):
 
@@ -14,18 +16,23 @@ class FigureGenerator:
         altura, anchura2, front_matrix_recortada = self._cut_matrix_finding_shape(front_matrix)
         altura2, profundidad2, side_matrix_recortada = self._cut_matrix_finding_shape(side_matrix)
         
+        if (altura is None) and (anchura is None) and (profundidad is None):
+            return self._paint_matrix(np.array([[[]]]), figsize, tkinter)
+        
         if altura is None or anchura is None or profundidad is None:
+            self.message = "Las matrices introduccidas son inválidas, no se puede realizar figura 3D."
+            self.message_type = 3
             print('Matrices Invalidas')
             return self._paint_matrix(np.array([[[]]]), figsize, tkinter)
+        
         if anchura != anchura2 or profundidad != profundidad2 or altura != altura2:
             print('Matrices Invalidas')
+            self.message = "Las matrices introduccidas son inválidas, no se puede realizar figura 3D."
+            self.message_type = 3
             return self._paint_matrix(np.array([[[]]]), figsize, tkinter)
 
         self.matriz3D = deepcopy(np.full((anchura, altura, profundidad), -1))
         matriz3D = deepcopy(np.full((anchura, altura, profundidad), -1))
-
-        # Definir el tamaño de cada cubo
-        size = 1
 
         for columna_planta in range(profundidad-1, -1, -1):
             for fila_planta in range(anchura):
@@ -76,6 +83,8 @@ class FigureGenerator:
                         matriz3D[x][z][y] = color_cubo
                             
         self.matriz3D =  matriz3D
+        self.message = "Se ha calculado la figura 3D"
+        self.message_type = 1
         if paint:
             return self._paint_matrix(self.matriz3D, figsize, tkinter)
         else:

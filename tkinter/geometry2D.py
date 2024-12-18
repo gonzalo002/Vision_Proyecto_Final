@@ -6,7 +6,7 @@ sys.path.append(root_dir)
 from codigo.cube_tracker import CubeTracker
 
 class Geometry2D:
-    def __init__(self, square_size: int = 5):
+    def __init__(self, square_size: int = 3):
         self.square_size = square_size  # Tamaño de los cuadrados en centímetros
 
     def draw_2d_space(self, cube_data:list, tkinter: bool = False, figsize:tuple=(8, 3.5)):
@@ -33,7 +33,7 @@ class Geometry2D:
 
         # Representar el Aruco
         if len(cube_data) > 0:
-            ax.add_patch(plt.Rectangle((-0.5, -0.5), 1, 1, color='black', label='Aruco'))
+            ax.add_patch(plt.Circle((0, 0), 0.5, color='black', label='Aruco'))
 
         new_cube_data_min = None
         new_cube_data_max = None

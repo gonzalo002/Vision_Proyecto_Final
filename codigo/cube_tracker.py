@@ -45,14 +45,21 @@ class CubeTracker:
         self.aruco_params = cv2.aruco.DetectorParameters()
         self.debug = False
         self.i = 0
+        self.message = None
+        self.message_type = 0 # 1=Info, 2=Warn, 3=Error  
 
         # Obtener calibración de la cámara
         self._get_camara_calibration(cam_calib_path)
 
 
     def _get_camara_calibration(self, path:str)->None:
-        with open(path, '+r') as f:
-            fichero =  yaml.load(f, yaml.Loader)
+        try:
+            with open(path, '+r') as f:
+                fichero =  yaml.load(f, yaml.Loader)
+        except:
+            print("[ERROR] No se ha encontrado el path.")
+            self.message = "No se ha encontrado el directorio del fichero de calibración."
+            self.message_type = 3
 
         self.camera_matrix = np.array(fichero["camera_matrix"]["data"]).reshape(fichero["camera_matrix"]["rows"], fichero["camera_matrix"]["cols"])
         self.dist_coeffs = np.array(fichero["distortion_coefficients"]["data"])
@@ -81,19 +88,10 @@ class CubeTracker:
             @return otsu_thresh (numpy array) - Imagen binarizada tras el umbral de Otsu.
         '''
         _, otsu_thresh = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)
-        #_, otsu_thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         if self.debug:
             cv2.imshow("Otsu", otsu_thresh)
         kernel = np.ones((3, 3), np.uint8)
         return cv2.morphologyEx(otsu_thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
-    
-    def _procesar_umbral_dinamico(self, gray: np.ndarray) -> np.ndarray:
-        # Umbral dinámico basado en la media local (adaptive thresholding)
-        adapt_thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-        if self.debug:
-            cv2.imshow("Umbral Dinámico", adapt_thresh)
-        kernel = np.ones((3, 3), np.uint8)
-        return cv2.morphologyEx(adapt_thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
     
     def _detectar_bordes(self, imagen:np.ndarray) -> np.ndarray:
         ''' 
@@ -128,6 +126,7 @@ class CubeTracker:
             img = self.frame.copy()
             cv2.drawContours(img, filtered_contours, -1, (0,255,0))
             cv2.imshow('Todos los Contornos', img)
+
         return filtered_contours
 
 
@@ -361,8 +360,10 @@ class CubeTracker:
         # Detectar Aruco
         mask_frame, aruco_frame = self._detectar_aruco(frame)
         if mask_frame is False:
+            self.message = "El ArUco no está en la mesa."
+            self.message_type = 3
             print(f"[ERROR] El Aruco no está en la mesa")
-            return False, False
+            return frame, []
             
         gray = self._aplicar_filtro_grises(mask_frame)
         hsv_frame = self._aplicar_filtro_hsv(mask_frame)
@@ -378,6 +379,13 @@ class CubeTracker:
         if mostrar or debug:
             if cv2.waitKey(0) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
+        
+        if resultado == []:
+            self.message = "No se ha encontrado ningún cubo"
+            self.message_type = 2
+        else:
+            self.message = "Se ha procesado la imagen."
+            self.message_type = 1
 
         return self.imagen_analizada, resultado
 

@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
 from PIL.ImageTk import PhotoImage
 import cv2, sys, platform
+from functools import partial
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(root_dir)
@@ -55,7 +56,7 @@ class VisionTab:
         self.ImageProcessorAlzado = ImageProcessor_Front()
         self.ImageProcessorPerfil = ImageProcessor_Front()
         self.ImageProcessorPlanta = ImageProcessor_Top()
-        self.CubeLocalizator = CubeTracker(f"{self.file_path}/data/camera_data/ost.yaml")
+        self.CubeLocalizator = CubeTracker(f"{self.file_path}/data/necessary_data/ost.yaml")
         self.Geometry3D = FigureGenerator()
         self.Geometry2D = Geometry2D()
         self.camera_controller = CameraController(10)
@@ -66,9 +67,10 @@ class VisionTab:
         
         self.F_inputs = []
         self.F_images = []
-        self.imgs = [None, None, None]
+        self.imgs = [None, None, None, None]
         self.CB_entries = []
         self.label_text = ["ALZADO", "PERFIL", "PLANTA"] 
+        self.message_type_list = ["", "INFO", "WARN", "ERROR"]
         self.L_imgs = []
         self.F_input_1 = None
         self.F_input_2 = None
@@ -80,6 +82,8 @@ class VisionTab:
         #Definicion estados del boton
         self.state_procesar = True
         self.state_procesar_xy = True
+        self.message = None
+        self.message_type = 0 # 1=Info, 2=Warn, 3=Error 
         
         
         self.estilo()
@@ -111,9 +115,11 @@ class VisionTab:
         self.F_primera_fila.grid(row=0, column=0, sticky="nsew",padx=10, pady=5)
         self.F_primera_fila.grid_rowconfigure(0, weight=1)
         self.F_primera_fila.grid_columnconfigure(0, weight=1)
+        self.F_primera_fila.grid_columnconfigure(1, weight=1)
+
 
         self.LF_primera_col = ttk.LabelFrame(self.F_primera_fila, text="  Modo Funcionamiento  ")
-        self.LF_primera_col.grid(row=0, column=0, sticky="nsew", padx=[0,0], pady=0)
+        self.LF_primera_col.grid(row=0, column=0, sticky="nsew", padx=[0,5], pady=0)
         self.LF_primera_col.grid_rowconfigure(0, weight=1)
         self.LF_primera_col.grid_columnconfigure(0, weight=1)
 
@@ -143,7 +149,25 @@ class VisionTab:
         self.L_camON = ttk.Label(self.F_primera_col, text="CAMARA ON" )
         self.L_camON.grid(row=0, column=2, sticky="w", padx=[10, 0])
 
-    
+        # CALIBRAR CAMARAS
+        self.LF_00_1 = ttk.LabelFrame(self.F_primera_fila, text="  Calibración  ")
+        self.LF_00_1.grid(row=0, column=1, sticky="nsew", padx=[5, 0], pady=0)
+        self.LF_00_1.grid_rowconfigure(0, weight=1)
+        self.LF_00_1.grid_columnconfigure(0, weight=1)
+
+
+        self.F_00_1= ttk.Frame(self.LF_00_1)
+        self.F_00_1.grid(row=0, column=0, sticky="nsew",padx=0, pady=0)
+        self.F_00_1.grid_rowconfigure(0, weight=1)
+        self.F_00_1.grid_columnconfigure(0, weight=1)
+        
+        self.B_CalibrarCubo = ttk.Button(self.F_00_1, 
+                                 text="CALIBRAR CUBO",
+                                 bootstyle="primary",
+                                 command=self.calibrate_cube)
+        self.B_CalibrarCubo.grid(row=0, column=0, sticky="nsew",padx=10, pady=10)
+
+
     def _fila_0_col_1(self):
 
         # --- FRAME: Primera fila ---
@@ -384,16 +408,11 @@ class VisionTab:
         self.terminal.vbar.pack_forget() 
         #self.terminal.config(yscrollcommand=self.terminal_scroll.set)
         self.terminal.grid(row=0, column=0, sticky="nsew")
-        self.terminal.tag_configure("ERROR", foreground="red")  # Estilo para errores
-        self.terminal.tag_configure("WARN", foreground="yellow")  # Estilo para advertencias
-        self.terminal.tag_configure("INFO", foreground="green")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n", "ERROR")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
-        self.terminal.insert(ttk.END, f"Mensaje 1\n")
+        self.terminal.tag_configure("ERROR", foreground="#FF0000")  # Estilo para errores
+        self.terminal.tag_configure("WARN", foreground="#FFFF00")  # Estilo para advertencias
+        self.terminal.tag_configure("INFO", foreground="#00FF00")
+        self._update_terminal()
+        
 
 
     def toggle_3d_mode(self):
@@ -422,7 +441,7 @@ class VisionTab:
         if self.F_input_ws is not None:
             self.F_input_ws.destroy()
             self.F_input_ws = ttk.Frame(self.F_img_ws)
-            self.F_input_ws.grid(row=2, column=0, sticky="nsew")
+            self.F_input_ws.grid(row=2, column=0, padx=10, sticky='nsew')
             
         if self.V_modo_ws.get() == 1:
             self.CB_modo_ws.config(text="CAMARA ACTIVA")
@@ -433,7 +452,7 @@ class VisionTab:
             self.CB_modo_ws.config(text="CAMARA DESACTIVADA")
             self.CB_modo_ws.config(bootstyle="danger-outline-toolbutton")
             self.file_ws_inputs()
-            
+
 
     def camera_ws_inputs(self):
         """Elimina los campos de entrada y botones para cargar imágenes"""
@@ -470,8 +489,8 @@ class VisionTab:
         self.B_browse_3 = ttk.Button(
             self.F_input_ws,
             text="Buscar...",
-            command=lambda: self.load_save_frame("img_ws", self.E_input_3, self.L_img_ws, 0.65))
-        self.B_browse_3.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+            command=lambda: self.load_save_frame(3, self.E_input_3, self.L_img_ws, 0.65))
+        self.B_browse_3.grid(row=0, column=1, padx=10, pady=[10,0], sticky="nsew")
         
         self._update_2D_file_images()
     
@@ -509,7 +528,7 @@ class VisionTab:
             
             self.B_browsers.append(ttk.Button(self.F_inputs[i],
                                               text="Buscar...",
-                                              command=lambda: self.load_save_frame(i, self.E_inputs[i], self.L_imgs[i])))
+                                              command=partial(self.load_save_frame, i, self.E_inputs[i], self.L_imgs[i])))
             self.B_browsers[i].grid(row=0, column=1, sticky="nsew")
 
         self._update_3D_file_images()
@@ -561,7 +580,7 @@ class VisionTab:
                     imgtk = self._create_image_with_text("Cámara NO encontrada", 0.65)
                     frame = None
 
-                self.img_ws = frame
+                self.imgs[3] = frame
                 self.L_img_ws.config(image=imgtk)
                 self.L_img_ws.image = imgtk
                 self.L_img_ws.update()
@@ -608,20 +627,26 @@ class VisionTab:
 
             except Exception as e:
                 print(f"Error al cargar la imagen: {e}")
-        
+                self.message = "Error al cargar la imagen."
+                self.message_type = 3
+
+            self.message = "La imagen ha sido cargada"
+            self.message_type = 1
             return frame
         
         return self._create_image_with_text("CARGAR IMAGEN", aspect_ratio)
 
     def xy_process_images(self):
-        if self.img_ws is not None:
+        if self.imgs[3] is not None:
+            self.message = "Procesando la imagen del work space."
+            self.message_type = 1
             self.B_process_ws.state([ttk.DISABLED])
             self.B_clear_ws.state(["!disabled"])
             self.state_procesar_xy = False
             self.update_camera_ws()
             
 
-            img_ws_processed, coordenadas = self.CubeLocalizator.process_image(self.img_ws, area_size=1000)
+            img_ws_processed, coordenadas = self.CubeLocalizator.process_image(self.imgs[3], area_size=1000)
 
             #Resize
             img_ws_processed = Image.fromarray(cv2.cvtColor(img_ws_processed, cv2.COLOR_BGR2RGB))
@@ -631,14 +656,17 @@ class VisionTab:
             self.L_img_ws.config(image=photo1)
             self.L_img_ws.image = photo1
 
-            # Actualizar canvas_3d
+            # Actualizar canvas_2d
             if hasattr(self, "canvas_2d"):
                 self.canvas_2d.get_tk_widget().destroy()
 
-            fig_2d = self.Geometry2D.draw_2d_space(coordenadas, True, (10, 3.5))
-            self.canvas_2d = FigureCanvasTkAgg(fig_2d, self.LF_2d_fila)
+            fig_2d = self.Geometry2D.draw_2d_space(coordenadas, True, (4, 3.5))
+            self.canvas_2d = FigureCanvasTkAgg(fig_2d, self.F_figure_ws)
             self.canvas_2d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
-    
+        else:
+            self.message = "No se ha podido procesar la imagen del work space, porque no había imagen."
+            self.message_type = 3
+
     def _expand_corners(self, corners, factor=1.2):
         """
         Expande las esquinas del marcador ArUco aumentando su tamaño.
@@ -671,10 +699,21 @@ class VisionTab:
 
         return expanded_corners
     
+    def calibrate_cube(self):
+        if self.imgs[2] is not None:
+            self.message = "Calibrando área del cubo."
+            self.message_type = 1
+            self.ImageProcessorPlanta.process_image(self.imgs[2], calibration=True)
+        else:
+            self.message = "No se ha podido procesar calibrar el área, porque faltaba la imagen."
+            self.message_type = 3
+
     def process_images(self):
         """Procesa las imágenes y las muestra en los labels"""
         # Verifica que ambas imágenes estén cargadas
         if (self.imgs[0] is not None) and (self.imgs[1] is not None) and (self.imgs[2] is not None):
+            self.message = "Procesando la figura 3d."
+            self.message_type = 1
             self.state_procesar = False
             self.update_camera_3D()
             self.B_process_3D.state(["disabled"])
@@ -704,6 +743,9 @@ class VisionTab:
             fig_3d = self.Geometry3D.generate_figure_from_matrix(planta_matrix, alzado_matrix, perfil_matrix, paint=True, tkinter=True)
             self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.F_figure_3D)
             self.canvas_3d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
+        else:
+            self.message = "No se ha podido procesar la figura 3D, porque faltaba alguna imagen"
+            self.message_type = 3
 
     def _resize_image(self, img:Image.Image, aspect_ratio:float=0.6):
         img_size = (int(img.width * aspect_ratio), int(img.height * aspect_ratio))
@@ -734,22 +776,23 @@ class VisionTab:
         self.toggle_3d_mode()
     
     def xy_clear_images(self):
-        self.B_clear_3D.state([ttk.DISABLED])
-        self.xy_process_button.state(["!disabled"])
+        self.B_clear_ws.state([ttk.DISABLED])
+        self.B_process_ws.state(["!disabled"])
         self.state_procesar_xy = True
 
         # --- VACIAR MATRIZ ---
-        if hasattr(self, "canvas_2d") and self.canvas_2d is not None:
-            self.canvas_2d.get_tk_widget().destroy()
+        if hasattr(self, "canvas_2d"):
+                self.canvas_2d.get_tk_widget().destroy()
 
-        fig_2d = self.Geometry2D.draw_2d_space([], True, (10, 3.5))
-
-        self.canvas_2d = FigureCanvasTkAgg(fig_2d, self.LF_2d_fila)
-        self.canvas_2d.get_tk_widget().pack(padx=0, pady=0)
+        fig_2d = self.Geometry2D.draw_2d_space([], True, (4, 3.5))
+        self.canvas_2d = FigureCanvasTkAgg(fig_2d, self.F_figure_ws)
+        self.canvas_2d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
         
-        self.update_camera_ws()
+        self.toggle_ws_mode()
 
     def update_cameras(self):
+        self.message = "Las cámaras han sido actualizadas."
+        self.message_type = 1
         self.camera_controller.stop()
         self.camera_controller.start(10)
         if self.camera_controller.camera_names != []:
@@ -758,8 +801,8 @@ class VisionTab:
                     self.CB_entries[i]['values'] = self.camera_controller.camera_names
             self.CB_cam_ws['values'] = self.camera_controller.camera_names
 
-        self.update_camera_3D()
-        self.update_camera_ws()
+        self.toggle_3d_mode()
+        self.toggle_ws_mode()
         
         
 # Función para actualizar las imágenes en la interfaz
@@ -776,7 +819,45 @@ class VisionTab:
         self.L_img_ws.config(image=img3)
         self.L_img_ws.image = img3
 
+    def _update_terminal(self):
 
+        if self.ImageProcessorAlzado.message is not None and self.ImageProcessorAlzado.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.ImageProcessorAlzado.message_type]}] [ImageProcessorAlzado]: {self.ImageProcessorAlzado.message}\n", self.message_type_list[self.ImageProcessorAlzado.message_type])
+            self.terminal.yview(ttk.END)
+            self.ImageProcessorAlzado.message = None
+            self.ImageProcessorAlzado.message_type = None
+        
+        if self.ImageProcessorPlanta.message is not None and self.ImageProcessorPlanta.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.ImageProcessorPlanta.message_type]}] [ImageProcessorPlanta]: {self.ImageProcessorPlanta.message}\n", self.message_type_list[self.ImageProcessorPlanta.message_type])
+            self.terminal.yview(ttk.END)
+            self.ImageProcessorPlanta.message = None
+            self.ImageProcessorPlanta.message_type = None
+        
+        if self.ImageProcessorPerfil.message is not None and self.ImageProcessorPerfil.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.ImageProcessorPerfil.message_type]}] [ImageProcessorPerfil]: {self.ImageProcessorPerfil.message}\n", self.message_type_list[self.ImageProcessorPerfil.message_type])
+            self.terminal.yview(ttk.END)
+            self.ImageProcessorPerfil.message = None
+            self.ImageProcessorPerfil.message_type = None
+        
+        if self.Geometry3D.message is not None and self.Geometry3D.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.Geometry3D.message_type]}] [Geometry3D]: {self.Geometry3D.message}\n", self.message_type_list[self.Geometry3D.message_type])
+            self.terminal.yview(ttk.END)
+            self.Geometry3D.message = None
+            self.Geometry3D.message_type = None
+        
+        if self.CubeLocalizator.message is not None and self.CubeLocalizator.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.CubeLocalizator.message_type]}] [CubeLocalizator]: {self.CubeLocalizator.message}\n", self.message_type_list[self.CubeLocalizator.message_type])
+            self.terminal.yview(ttk.END)
+            self.CubeLocalizator.message = None
+            self.CubeLocalizator.message_type = None
+        
+        if self.message is not None and self.message_type is not None:
+            self.terminal.insert(ttk.END, f"[{self.message_type_list[self.message_type]}] [Tkinter]: {self.message}\n", self.message_type_list[self.message_type])
+            self.terminal.yview(ttk.END)
+            self.message = None
+            self.message_type = None
+
+        self.root.after(50, self._update_terminal)
 
     def _create_image_with_text(self, text, aspect_ratio:float=0.6):
 
