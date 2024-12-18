@@ -740,7 +740,7 @@ class VisionTab:
             if hasattr(self, "canvas_3d"):
                 self.canvas_3d.get_tk_widget().destroy()
 
-            fig_3d = self.Geometry3D.generate_figure_from_matrix(planta_matrix, alzado_matrix, perfil_matrix, paint=True, tkinter=True)
+            fig_3d = self.Geometry3D.generate_figure_from_matrix(matriz_planta=planta_matrix, matriz_alzado=alzado_matrix, matriz_perfil=perfil_matrix, paint=True, tkinter=True)
             self.canvas_3d = FigureCanvasTkAgg(fig_3d, self.F_figure_3D)
             self.canvas_3d.get_tk_widget().grid(row=0, column=0, pady=20, padx=10, sticky="nsew")
         else:
