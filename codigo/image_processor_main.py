@@ -130,41 +130,43 @@ class ImageProcessor:
             plt.show()
         else:
             # Mostrar la figura tridimensional
-            fig_3d = self.generator.generate_figure_from_matrix(matriz_planta=self.matrix_planta, matriz_perfil=self.matrix_perfil, matriz_alzado=self.matrix_alzado, paint=True)
+            fig_3d = self.generator.generate_figure_from_matrix(matriz_planta=self.matrix_planta, matriz_perfil=self.matrix_perfil, matriz_alzado=self.matrix_alzado, paint=True, figsize=(10,7))
 
 
 if __name__ == '__main__':
     processor = ImageProcessor()
+    for_ini = 0
+    for_range = 9
+    for i in range(for_ini, for_range):
+        use_cam = False # Si se quiere trabajar directamente de la camara (True) o a traves de imagenes (False)
+        num_figure = i # ID de la figura guardada en imagenes
+        mostrar = True # Si se quiere enseñar el resultado final de las diferentes cámaras = True
+        debug = False # Si se quiere mostrar el proceso intermedio de cada cámara = True
+        save_image = False # Si se quieres guardar las imagenes mostradas por la cámara = True
+        error = False
 
-    use_cam = False # Si se quiere trabajar directamente de la camara (True) o a traves de imagenes (False)
-    num_figure = 1 # ID de la figura guardada en imagenes
-    mostrar = False # Si se quiere enseñar el resultado final de las diferentes cámaras = True
-    debug = False # Si se quiere mostrar el proceso intermedio de cada cámara = True
-    save_image = False # Si se quieres guardar las imagenes mostradas por la cámara = True
-    error = False
+        if use_cam:    
+            # Modificar el ID de la cámara en caso de cambiar
+            cam_alzado = cv2.VideoCapture(0)
+            cam_perfil = cv2.VideoCapture(5)
+            cam_planta = cv2.VideoCapture(9)
+            
+            if not cam_alzado.isOpened() or not cam_perfil.isOpened() or not cam_planta.isOpened():
+                print("Error: No se pudo abrir el vídeo.")
+                raise ValueError('ID de camaras incorrecto')
+            else:
+                success_alzado, frame_alzado = cam_alzado.read()
+                success_perfil, frame_perfil = cam_perfil.read()
+                success_planta, frame_planta = cam_planta.read()
 
-    if use_cam:    
-        # Modificar el ID de la cámara en caso de cambiar
-        cam_alzado = cv2.VideoCapture(0)
-        cam_perfil = cv2.VideoCapture(5)
-        cam_planta = cv2.VideoCapture(9)
-        
-        if not cam_alzado.isOpened() or not cam_perfil.isOpened() or not cam_planta.isOpened():
-            print("Error: No se pudo abrir el vídeo.")
-            raise ValueError('ID de camaras incorrecto')
+                if not success_alzado and not success_perfil and not success_planta:
+                    error = True
+                    raise ValueError('Error al leer de las camaras')
         else:
-            success_alzado, frame_alzado = cam_alzado.read()
-            success_perfil, frame_perfil = cam_perfil.read()
-            success_planta, frame_planta = cam_planta.read()
-
-            if not success_alzado and not success_perfil and not success_planta:
-                error = True
-                raise ValueError('Error al leer de las camaras')
-    else:
-        save_image = False
-        file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-        frame_alzado = cv2.imread(f'{file_path}/data/figuras_alzado/Figura_{num_figure}_F.png')
-        frame_perfil = cv2.imread(f'{file_path}/data/figuras_perfil/Figura_{num_figure}_L.png')
-        frame_planta = cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_figure}_S.png')
-    
-    processor.process_image(frame_alzado=frame_alzado, frame_perfil=frame_perfil, frame_planta=frame_planta, mostrar=mostrar, debug=debug, save_images=save_image)
+            save_image = False
+            file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
+            frame_alzado = cv2.imread(f'{file_path}/data/figuras_alzado/Figura_{num_figure}_F.png')
+            frame_perfil = cv2.imread(f'{file_path}/data/figuras_perfil/Figura_{num_figure}_L.png')
+            frame_planta = cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_figure}_S.png')
+        
+        processor.process_image(frame_alzado=frame_alzado, frame_perfil=frame_perfil, frame_planta=frame_planta, mostrar=mostrar, debug=debug, save_images=save_image)
