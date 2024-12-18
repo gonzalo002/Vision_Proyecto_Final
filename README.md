@@ -25,11 +25,14 @@ python -m venv proyecto-final-venv
 #### 4. Instala las dependencias.
 ```bash
 python.exe -m pip install --upgrade pip
-pip install -r .\requeriments\requirements.txt
+pip install -r .\requirements\requirements.txt
 ```
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
+Para estos dos pasos se necesita abrir el Power Shell en la carpeta correspondiente con permisos de administrador, ya que la carpeta de fuentes está protegida.
 ```bash
-copy .\requirements\Montserrat-Regular.ttf .\proyecto-final-venv\Include\
+Expand-Archive -Path "requirements\montserrat.zip" -DestinationPath "C:\Windows\Fonts\"
+```
+```bash
 Remove-Item .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\user.py
 copy .\requirements\user.py .\proyecto-final-venv\Lib\site-packages\ttkbootstrap\themes\
 ```
