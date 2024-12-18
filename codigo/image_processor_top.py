@@ -40,7 +40,6 @@ class ImageProcessor_Top:
         self.contour_img = None
         self.frame = None
         self.debug = False
-        self.i = 0
         
         self.centers = []
         self.areas = []
@@ -50,7 +49,7 @@ class ImageProcessor_Top:
         
         try:
             file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-            with open(f'{file_path}/data/cube_data/cube_area.yaml', 'r') as file:
+            with open(f'{file_path}/data/necessary_data/cube_area.yaml', 'r') as file:
                 self.base_area = yaml.safe_load(file)
         except:
             print('Calibrar Cubo!!')
@@ -247,10 +246,10 @@ class ImageProcessor_Top:
         mask_green = cv2.bitwise_or(mask_green, y_inv)
         
         mask_green = cv2.bitwise_not(mask_green)
-        
-        gray_g =cv2.bitwise_and(contrast_images[1], contrast_images[1], mask=mask_green)
-        gray_g = cv2.cvtColor(gray_g, cv2.COLOR_BGR2GRAY)
-        _, g_inv = cv2.threshold(gray_g, 50, 255, cv2.THRESH_BINARY)                     
+
+        color_g =cv2.bitwise_and(contrast_images[1], contrast_images[1], mask=mask_green)
+        gray_g = cv2.cvtColor(color_g, cv2.COLOR_BGR2GRAY)
+        _, g_inv = cv2.threshold(gray_g, 40, 255, cv2.THRESH_BINARY)                     
              
         resultado= [r_inv, g_inv, b_inv, y_inv]
         
@@ -259,10 +258,10 @@ class ImageProcessor_Top:
             resultado[i] = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=1)
             
         if self.debug:
-             cv2.imshow('Red Only', resultado[0])
-             cv2.imshow('Green Only', resultado[1])
-             cv2.imshow('Blue Only', resultado[2])
-             cv2.imshow('Yellow Only', resultado[3])
+             cv2.imshow('Red Only', contrast_images[0])
+             cv2.imshow('Green Only', color_g)
+             cv2.imshow('Blue Only', contrast_images[2])
+             cv2.imshow('Yellow Only', contrast_images[3])
              
         return resultado
 
@@ -344,12 +343,14 @@ class ImageProcessor_Top:
         lista_resultado_y = [max_y - side_length * i for i in range(num_elements)]
 
         if self.debug:
+            grid_image = deepcopy(self.contour_img)
             for x in lista_resultado_x:
-                self.contour_img = cv2.line(self.contour_img, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (255, 0, 255), 1)
+                grid_image = cv2.line(grid_image, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (255, 0, 255), 2)
 
             # Dibujar las líneas horizontales
             for y in lista_resultado_y:
-                self.contour_img = cv2.line(self.contour_img, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (255, 0, 255), 1)
+                grid_image = cv2.line(grid_image, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (255, 0, 255), 2)
+            cv2.imshow('Imagen con Rejilla', grid_image)
 
         # Alinear los puntos a la cuadrícula más cercana
         aligned_points_indices = []  # Lista para almacenar los índices de los puntos alineados
@@ -416,7 +417,7 @@ class ImageProcessor_Top:
             try:
                 self.base_area = float(self.base_area)
                 file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-                with open(f'{file_path}/data/cube_data/cube_area.yaml', 'r') as file:
+                with open(f'{file_path}/data/necessary_data/cube_area.yaml', 'r') as file:
                     yaml.dump(self.base_area, file)
             except:
                 print('Fallo al calibrar')
@@ -458,19 +459,15 @@ class ImageProcessor_Top:
 
             if cv2.waitKey(0) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
-            
-            print(f'Matriz Top:\n {self.matrix}')
 
-            cv2.imwrite(f"Figura_{self.i}_T.png", frame)
-            self.i +=1
         return self.matrix, self.contour_img
 
 
 
 # Ejecutar el programa
 if __name__ == "__main__":
-    use_cam = False
-    num_cam = 1
+    use_cam = True
+    num_cam = 9
     num_img = 0
     
     if use_cam:
