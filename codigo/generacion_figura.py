@@ -31,8 +31,9 @@ class FigureGenerator:
             for fila_planta in range(anchura):
                 if plant_matrix_recortada[fila_planta][columna_planta] != -1:
                     color_cubo = plant_matrix_recortada[fila_planta][columna_planta]
-                    columna_lateral = y = profundidad - columna_planta - 1
-                    columna_frontal = x = anchura - fila_planta -1
+                    columna_lateral = x = profundidad - columna_planta - 1
+                    columna_frontal = anchura - fila_planta -1
+                    y = fila_planta
                     cube_found = False
                     for fila_lateral in range(altura):
                         fila_frontal = fila_lateral
