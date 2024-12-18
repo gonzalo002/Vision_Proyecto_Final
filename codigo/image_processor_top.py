@@ -164,13 +164,15 @@ class ImageProcessor_Top:
                 @param gray (numpy array) - Imagen en escala de grises.
                 @return thresh (numpy array) - Imagen binarizada tras la umbralizacion.
         '''
-        _, thresh = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(gray, 70, 255, cv2.THRESH_BINARY)
+
+        kernel = np.ones((3, 3), np.uint8)
+        thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
 
         if self.debug:
             cv2.imshow("Umbralización", thresh)
 
-        kernel = np.ones((3, 3), np.uint8)
-        return cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+        return thresh
     
 
     def _get_contrast_img(self, frame:np.ndarray) -> list:
@@ -481,9 +483,9 @@ class ImageProcessor_Top:
 
 # Ejecutar el programa
 if __name__ == "__main__":
-    use_cam = True
+    use_cam = False
     num_cam = 9
-    num_img = 0
+    num_img = 1
     
     if use_cam:
         cam = cv2.VideoCapture(num_cam)
@@ -491,8 +493,8 @@ if __name__ == "__main__":
             _, frame = cam.read()
     else:
         file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-        ruta = f'{file_path}/data/Figuras_Superior/Figura_{num_img}_S.png'
-        frame = cv2.imread(ruta)
+        # frame = deepcopy(cv2.imread(f'{file_path}/data/figuras_planta/Cube_Calibration.png'))
+        frame = deepcopy(cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_img}_S.png'))
 
     processor = ImageProcessor_Top()
     
