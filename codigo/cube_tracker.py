@@ -384,13 +384,13 @@ class CubeTracker:
 if __name__ == "__main__":
     use_cam = False
     file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-    cube_tracker = CubeTracker(cam_calib_path=f"{file_path}/data/camera_data/ost.yaml")
+    cube_tracker = CubeTracker(cam_calib_path=f"{file_path}/data/necessary_data/ost.yaml")
 
     if use_cam:
         cam = cv2.VideoCapture(0)
         if cam.isOpened():
             _, frame = cam.read()
-            cv2.imshow("hola", frame)
+            cv2.imshow("Frame Capturado", frame)
     else:
         num = 0
         ruta = f'{file_path}/data/cubos_exparcidos/Cubos_Exparcidos_{num}.png'
