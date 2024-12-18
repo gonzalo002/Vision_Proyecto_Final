@@ -65,10 +65,9 @@ Descomprimir y configurar las fuentes del Tkinter.
 ```bash
 unzip requiremets/montserrat.zip -d /usr/share/fonts/truetype/montserrat/
 cp /usr/share/fonts/truetype/montserrat/static/Montserrat-Regular.ttf proyecto-final-venv/include/
-# Configurar el tema de tkinter
-cp requirements/user.py proyecto-final-venv/lib/python3.8/site-packages/ttkbootstrap/themes/
 ```
 Copiar el tema personalizado del Tkinter.
+
 Primero, ten en cuenta que tendrás que poner la versión correcta de Python que tengas instalada en la ruta del directorio.
 ```bash
 python3 --version
