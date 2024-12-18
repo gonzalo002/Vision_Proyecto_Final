@@ -81,7 +81,7 @@ class ImageProcessor:
 
         # Procesamiento de las Imagenes
         self.matrix_alzado, img_final_alzado  = self.procesador_lateral.process_image(self.frame_alzado, debug=debug)
-        self.matrix_perfil, img_final_perfil = self.procesador_lateral.process_image(frame=self.frame_perfil, debug=debug)
+        self.matrix_perfil, img_final_perfil = self.procesador_lateral.process_image(self.frame_perfil, debug=debug)
         self.matrix_planta, img_final_planta = self.procesador_superior.process_image(self.frame_planta, debug=debug)
 
 
@@ -116,7 +116,7 @@ class ImageProcessor:
             ax.axis('off')
             
 
-            fig_3d = self.generator.generate_figure_from_matrix(self.matrix_planta, self.matrix_perfil, self.matrix_alzado, paint=mostrar, tkinter=True)
+            fig_3d = self.generator.generate_figure_from_matrix(matriz_planta=self.matrix_planta, matriz_perfil=self.matrix_perfil, matriz_alzado=self.matrix_alzado, paint=mostrar, tkinter=True)
             ax = fig.add_subplot(2, 2, 4)
             fig_3d.savefig("/tmp/figura_secundaria.png", format="png")
             ax.set_title('Figura 3D')
@@ -130,14 +130,14 @@ class ImageProcessor:
             plt.show()
         else:
             # Mostrar la figura tridimensional
-            fig_3d = self.generator.generate_figure_from_matrix(self.matrix_planta, self.matrix_perfil, self.matrix_alzado, paint=True)
+            fig_3d = self.generator.generate_figure_from_matrix(matriz_planta=self.matrix_planta, matriz_perfil=self.matrix_perfil, matriz_alzado=self.matrix_alzado, paint=True)
 
 
 if __name__ == '__main__':
     processor = ImageProcessor()
 
     use_cam = False # Si se quiere trabajar directamente de la camara (True) o a traves de imagenes (False)
-    num_figure = 3 # ID de la figura guardada en imagenes
+    num_figure = 1 # ID de la figura guardada en imagenes
     mostrar = False # Si se quiere enseñar el resultado final de las diferentes cámaras = True
     debug = False # Si se quiere mostrar el proceso intermedio de cada cámara = True
     save_image = False # Si se quieres guardar las imagenes mostradas por la cámara = True
