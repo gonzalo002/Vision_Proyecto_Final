@@ -11,7 +11,7 @@ Clona este repositorio en tu máquina local:
 git clone https://github.com/gonzalo002/Vision_Proyecto_Final.git
 ```
 ```bash
-./Vision_Proyecto_Final/
+cd ./Vision_Proyecto_Final/
 ```
 
 #### 2. Crea un entorno virtual.
