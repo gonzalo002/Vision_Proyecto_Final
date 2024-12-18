@@ -49,7 +49,6 @@ class ImageProcessor_Front:
         self.contour_img = None
         self.frame = None
         self.debug = False
-        self.i = 0
         self.filtered_colors = []
         self.message = None
         self.message_type = 0 # 1=Info, 2=Warn, 3=Error   
@@ -142,11 +141,11 @@ class ImageProcessor_Front:
    
         # Definir los rangos de colores en HSV
         # Verde:
-        lower_green = np.array([30, 130, 0])   # Mínimo verde
-        upper_green = np.array([110, 255, 255]) # Máximo verde
+        lower_green = np.array([40, 140, 30])   # Mínimo verde
+        upper_green = np.array([110, 255, 200]) # Máximo verde
 
         # Rojo: rango 1 
-        lower_red1 = np.array([0, 70, 70], np.uint8)    # Minimo rojo rango 1
+        lower_red1 = np.array([0, 70, 90], np.uint8)    # Minimo rojo rango 1
         upper_red1 = np.array([20, 255, 255], np.uint8)  # Maximo rojo rango 1
 
         # Rojo: rango 2
@@ -207,10 +206,10 @@ class ImageProcessor_Front:
         resultado = self.filtered_colors = [r_inv, b_inv, g_inv, y_inv]
       
         if self.debug:
-             cv2.imshow('Red Only', r_inv)
-             cv2.imshow('Green Only', g_inv)
-             cv2.imshow('Blue Only', b_inv)
-             cv2.imshow('Yellow Only', y_inv)
+             cv2.imshow('Red Only', contrast_images[0])
+             cv2.imshow('Green Only', contrast_images[1])
+             cv2.imshow('Blue Only', contrast_images[2])
+             cv2.imshow('Yellow Only', contrast_images[3])
              
         return resultado
 
@@ -244,13 +243,6 @@ class ImageProcessor_Front:
                     side_length = np.linalg.norm(p2 - p1)  # Distancia Euclidiana entre los puntos
                     side_lengths.append(side_length)
                 
-                # Calcular la diferencia entre los lados
-                max_side = max(side_lengths)
-                min_side = min(side_lengths)
-                
-                # Si la diferencia entre los lados es pequeña, probablemente es un cuadrado
-                # if max_side - min_side < 50:  # El umbral de diferencia puede ajustarse
-                #     # Si los lados son casi iguales, es un cuadrado
                 large_contours.append(contour)
 
         if self.debug:
@@ -290,12 +282,14 @@ class ImageProcessor_Front:
         lista_resultado_y = [max_y - side_length * i for i in range(num_elements)]
 
         if self.debug:
+            grid_image = deepcopy(self.contour_img)
             for x in lista_resultado_x:
-                self.contour_img = cv2.line(self.contour_img, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (255, 0, 255), 2)
+                grid_image = cv2.line(grid_image, (x, lista_resultado_y[0]), (x, lista_resultado_y[4]), (255, 0, 255), 2)
 
             # Dibujar las líneas horizontales
             for y in lista_resultado_y:
-                self.contour_img = cv2.line(self.contour_img, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (255, 0, 255), 2)
+                grid_image = cv2.line(grid_image, (lista_resultado_x[0], y), (lista_resultado_x[4], y), (255, 0, 255), 2)
+            cv2.imshow('Imagen con Rejilla', grid_image)
 
         # Alinear los puntos a la cuadrícula más cercana
         aligned_points_indices = []  # Lista para almacenar los índices de los puntos alineados
@@ -337,8 +331,6 @@ class ImageProcessor_Front:
             matrix[row][col] = color
         
         return deepcopy(matrix)
-
-        
 
     def _draw_contours(self, contour:np.ndarray, color:tuple=(0, 255, 0), thickness:int=2):
         ''' 
@@ -423,10 +415,6 @@ class ImageProcessor_Front:
 
         if cv2.waitKey(0) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
-        
-
-        cv2.imwrite(f"Figura_{self.i}_F.png", frame)
-        self.i +=1
 
         return self.matrix, self.contour_img
 
