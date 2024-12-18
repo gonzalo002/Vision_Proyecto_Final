@@ -9,79 +9,95 @@ import os
 import matplotlib.pyplot as plt
 
 class ImageProcessor:
+    ''' 
+    Clase que procesa las imagenes de las 3 perspectivas de una figura para representar la figura tridimensional resultante.
+    Este proceso se realiza a traves de tecnicas de visión tradicional las cuales estan contenidas en las clases importadas
+    ImageProcessor_Front e ImageProcessor_Top. A su vez, el procesamiento de las matrices resultantes de las clases anteriores
+    es procesado en la figura 3D a traves de la clase FigureGenerator.
+
+    Esta clase realiza los siguientes pasos:
+        - Recoge las imagenes de las diferentes cámaras.
+        - Procesa las 3 imagenes a traves de las clases correspondientes, obteniendo la matriz resultante y la imagen con el resultado.
+        - Procesa las 3 matrices a traves de la clase FigureGenerator mostrando la figura resultante del proceso.
+
+    Métodos:
+        - __init__() - Inicializa el objeto, inicializa las clases a utilizar y define las variables necesarias del programa.
+        - _save_images() - En caso de solicitarlo, guarda las imagenes introducidas en la clase
+        - process_image() - Procesa las imagenes y obtiene la figura tridimensional resultante
+    '''
     def __init__(self, matrix_size:int = 5) -> None:
-        self.frame_front = None
-        self.front = ImageProcessor_Front()
-
-        self.frame_top = None
-        self.top = ImageProcessor_Top()
-
-        self.frame_side = None
-
-        self.matrix3D = None
+        ''' 
+        Inicializa los atributos de la clase.
+        - matrix_size: Tamaño de la matriz cuadrada que representa la cuadrícula de colores (por defecto, 5x5).
+        - matrix: Matriz inicializada con valores -1, que se usará para almacenar los colores detectados.
+        - frame: Imagen original introducida en la clase.
+            @param matrix_size (int) - Tamaño de la matriz cuadrada. Por defecto, 5.
+        '''
+        self.procesador_lateral = ImageProcessor_Front()
+        self.procesador_superior = ImageProcessor_Top()
         self.generator = FigureGenerator()
+
+        self.frame_perfil = None
+        self.frame_planta = None
+        self.frame_alzado = None
 
         self.matrix_size = matrix_size
         self.matrix_alzado = np.full((self.matrix_size, self.matrix_size), -1)
         self.matrix_planta = np.full((self.matrix_size, self.matrix_size), -1)
+        self.matrix_perfil = np.full((self.matrix_size, self.matrix_size), -1)
 
-        self.debug = False
-    
-    def save_images(self) -> None:
+
+    def _save_images(self) -> None:
+        """
+        Guarda las imagenes capturadas en la carpeta data del repositorio
+            @return None
+        """
         file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
         i = len(os.listdir(f'{file_path}/data/figuras_alzado/'))+1
 
-        cv2.imwrite(f'{file_path}/data/figuras_alzado/Figura_{i}_L.png', self.frame_front)
+        cv2.imwrite(f'{file_path}/data/figuras_alzado/Figura_{i}_F.png', self.frame_front)
         cv2.imwrite(f'{file_path}/data/figuras_planta/Figura_{i}_S.png', self.frame_top)
-        cv2.imwrite(f'{file_path}/data/figuras_perfil/Figura_{i}_F.png', self.frame_side)
+        cv2.imwrite(f'{file_path}/data/figuras_perfil/Figura_{i}_L.png', self.frame_side)
         print(f"\033[32m --- IMAGEN GUARDADA ---\033[0m")
 
-    def on_key(event):
-        if event.key == 'q':  # Si se presiona la tecla 'q'
-            plt.close('all')  # Cierra todas las figuras abiertas
 
-    def process_image(self, frame_top:np.ndarray, frame_front:np.ndarray, frame_side:np.ndarray, mostrar:bool=False, debug:bool=False, save_images:bool = False)-> tuple:
+    def process_image(self, frame_alzado:np.ndarray, frame_perfil:np.ndarray, frame_planta:np.ndarray, mostrar:bool=False, debug:bool=False, save_images:bool = False)-> tuple:
         ''' 
-        Ejecuta el flujo completo de procesamiento de una imagen para detectar colores y posiciones de cubos.
-            - Almacena la imagen original y una copia para dibujar contornos.
-            - Realiza el preprocesamiento para limpiar la imagen y detectar bordes.
-            - Encuentra y filtra los contornos relevantes basándose en su tamaño.
-            - Identifica los colores predominantes dentro de cada contorno y calcula las posiciones en una matriz.
-            - Dibuja contornos y anotaciones sobre la imagen de salida.
-            @param frame (numpy array) - Imagen de entrada en formato BGR.
-            @param area_size (int) - Umbral mínimo de área para considerar un contorno como válido. Por defecto, 2000.
-            @param mostrar (bool) - Si es True, muestra la imagen procesada.
-            @return (tuple) - Una tupla con:
-                - matrix (numpy array) - Matriz 5x5 que representa la cuadrícula con los colores detectados.
-                - contour_img (numpy array) - Imagen con los contornos y anotaciones dibujados.
+        Recoge las imagenes de las diferentes camaras, las procesa y muestra la figura 3D resultante
+            - Almacena la imagen original.
+            - Realiza el procesamiento para obtener la matriz resultante de la imagen.
+            - Analiza las diferentes matrices para mostrar la figura final.
+                @param frame_alzado (np.nd_array) - Imagen capturada por la camara con la perspectiva del alzado
+                @param frame_perfil (np.nd_array) - Imagen capturada por la camara con la perspectiva del perfil
+                @param frame_planta (np.nd_array) - Imagen capturada por la camara con la perspectiva del planta
+                @param mostrar = False (bool) - Muestra las imagenes resultantes del proceso
+                @param debug = False (bool) - Muestra los estados intermedios del proceso
+                @param save_images = False (bool) - Almacena las imagenes en la carpeta data
         '''
-        self.frame_top = deepcopy(frame_top)
-        self.frame_front = deepcopy(frame_front)
-        self.frame_side = deepcopy(frame_side)
-        self.debug = debug
+        # Guardado de las Imagenes
+        self.frame_alzado = deepcopy(frame_alzado)
+        self.frame_perfil = deepcopy(frame_perfil)
+        self.frame_planta = deepcopy(frame_planta)
 
-        self.matrix_alzado, img_final_alzado  = self.front.process_image(self.frame_front, debug=debug)
-        self.matrix_planta, img_final_planta = self.top.process_image(self.frame_top, debug=debug)
-        self.matrix_perfil, img_final_perfil = self.front.process_image(frame=self.frame_side, debug=debug)
+        # Procesamiento de las Imagenes
+        self.matrix_alzado, img_final_alzado  = self.procesador_lateral.process_image(self.frame_alzado, debug=debug)
+        self.matrix_perfil, img_final_perfil = self.procesador_lateral.process_image(frame=self.frame_perfil, debug=debug)
+        self.matrix_planta, img_final_planta = self.procesador_superior.process_image(self.frame_planta, debug=debug)
 
-        if self.debug:
+
+        if mostrar: # En caso de querer mostrar resultados Finales
             print('Matriz Alzado')
             print(self.matrix_alzado)
             print('\n\n')
-            print('Matriz Planta')
-            print(self.matrix_planta)
-            print('\n\n')
             print('Matriz Perfil')
             print(self.matrix_perfil)
+            print('\n\n')
+            print('Matriz Planta')
+            print(self.matrix_planta)
+            
+            fig = plt.figure(figsize=(10,7))
 
-        if save_images:
-            self.save_images()
-
-        if mostrar:
-            fig = plt.figure()
-
-            #fig, ax = plt.subplots(2,2, figsize=(10,10))
-            ax = fig.add_subplot(2,2, 1, )
+            ax = fig.add_subplot(2,2, 1)
             img_final_alzado = cv2.cvtColor(img_final_alzado, cv2.COLOR_BGR2RGB)
             ax.imshow(img_final_alzado)
             ax.set_title('Imagen Alzado')
@@ -112,31 +128,44 @@ class ImageProcessor:
 
             # Mostrar todos los gráficos
             plt.show()
+        else:
+            # Mostrar la figura tridimensional
+            fig_3d = self.generator.generate_figure_from_matrix(self.matrix_planta, self.matrix_alzado, self.matrix_perfil, paint=True)
+
 
 if __name__ == '__main__':
     processor = ImageProcessor()
 
-    use_cam = False
-    num_figure = 1
-    debug = False # Si se quiere que se muestre el proceso interno de cada clase
+    use_cam = False # Si se quiere trabajar directamente de la camara (True) o a traves de imagenes (False)
+    num_figure = 8 # ID de la figura guardada en imagenes
+    mostrar = True # Si se quiere enseñar el resultado final de las diferentes cámaras = True
+    debug = False # Si se quiere mostrar el proceso intermedio de cada cámara = True
+    save_image = False # Si se quieres guardar las imagenes mostradas por la cámara = True
+    error = False
 
     if use_cam:    
-        cam_front = cv2.VideoCapture(0)
-        cam_top = cv2.VideoCapture(9)
-        cam_side = cv2.VideoCapture(5)
+        # Modificar el ID de la cámara en caso de cambiar
+        cam_alzado = cv2.VideoCapture(0)
+        cam_perfil = cv2.VideoCapture(5)
+        cam_planta = cv2.VideoCapture(9)
         
-        if not cam_front.isOpened() or not cam_top.isOpened() or not cam_side.isOpened():
+        if not cam_alzado.isOpened() or not cam_perfil.isOpened() or not cam_planta.isOpened():
             print("Error: No se pudo abrir el vídeo.")
+            raise ValueError('ID de camaras incorrecto')
         else:
-            _, frame_top = cam_top.read()
-            _, frame_front = cam_front.read()
-            _, frame_side = cam_side.read()
-    else:
-        file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-        frame_front = cv2.imread(f'{file_path}/data/figuras_alzado/Figura_{num_figure}_F.png')
-        frame_top = cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_figure}_S.png')
-        frame_side = cv2.imread(f'{file_path}/data/figuras_perfil/Figura_{num_figure}_L.png')
+            success_alzado, frame_alzado = cam_alzado.read()
+            success_perfil, frame_perfil = cam_perfil.read()
+            success_planta, frame_planta = cam_planta.read()
 
+            if not success_alzado and not success_perfil and not success_planta:
+                error = True
+                raise ValueError('Error al leer de las camaras')
+    else:
+        save_image = False
+        file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
+        frame_alzado = cv2.imread(f'{file_path}/data/figuras_alzado/Figura_{num_figure}_F.png')
+        frame_perfil = cv2.imread(f'{file_path}/data/figuras_perfil/Figura_{num_figure}_L.png')
+        frame_planta = cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_figure}_S.png')
     
-    processor.process_image(frame_top=frame_top, frame_front=frame_front, frame_side=frame_side, mostrar=True, debug=debug, save_images=False)
+    processor.process_image(frame_alzado=frame_alzado, frame_perfil=frame_perfil, frame_planta=frame_planta, mostrar=mostrar, debug=debug, save_images=save_image)
 
