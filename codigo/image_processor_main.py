@@ -130,15 +130,15 @@ class ImageProcessor:
             plt.show()
         else:
             # Mostrar la figura tridimensional
-            fig_3d = self.generator.generate_figure_from_matrix(self.matrix_planta, self.matrix_alzado, self.matrix_perfil, paint=True)
+            fig_3d = self.generator.generate_figure_from_matrix(self.matrix_planta, self.matrix_perfil, self.matrix_alzado, paint=True)
 
 
 if __name__ == '__main__':
     processor = ImageProcessor()
 
     use_cam = False # Si se quiere trabajar directamente de la camara (True) o a traves de imagenes (False)
-    num_figure = 8 # ID de la figura guardada en imagenes
-    mostrar = True # Si se quiere enseñar el resultado final de las diferentes cámaras = True
+    num_figure = 3 # ID de la figura guardada en imagenes
+    mostrar = False # Si se quiere enseñar el resultado final de las diferentes cámaras = True
     debug = False # Si se quiere mostrar el proceso intermedio de cada cámara = True
     save_image = False # Si se quieres guardar las imagenes mostradas por la cámara = True
     error = False
@@ -168,4 +168,3 @@ if __name__ == '__main__':
         frame_planta = cv2.imread(f'{file_path}/data/figuras_planta/Figura_{num_figure}_S.png')
     
     processor.process_image(frame_alzado=frame_alzado, frame_perfil=frame_perfil, frame_planta=frame_planta, mostrar=mostrar, debug=debug, save_images=save_image)
-
