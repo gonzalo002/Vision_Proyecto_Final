@@ -16,6 +16,7 @@ git clone https://github.com/gonzalo002/Vision_Proyecto_Final.git
 
 #### 2. Crea un entorno virtual.
 ```bash
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
 python -m venv proyecto-final-venv
 ```
 #### 3. Activa el entorno virtual.
