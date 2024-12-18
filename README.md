@@ -63,6 +63,12 @@ pip install -r requirements/requirements_ubuntu.txt
 #### 5. Mueve los archivos necesarios a las carpetas correspondientes.
 ```powershell
 cp requirements/Montserrat-Regular.ttf proyecto-final-venv/include
+COPY fonts/montserrat.zip /tmp/montserrat.zip
+
+# Descomprimir y configurar las fuentes
+RUN unzip /tmp/montserrat.zip -d /usr/share/fonts/truetype/montserrat/ && \
+    rm /tmp/montserrat.zip && \
+    fc-cache -f -v
 cp requirements/user.py proyecto-final-venv/lib/python3.8/site-packages/ttkbootstrap/themes/
 ```
 #### 6. Desactiva el entorno virtual.
