@@ -646,7 +646,7 @@ class VisionTab:
             self.update_camera_ws()
             
 
-            img_ws_processed, coordenadas = self.CubeLocalizator.process_image(self.imgs[3], area_size=1000)
+            img_ws_processed, coordenadas = self.CubeLocalizator.process_image(self.imgs[3])
 
             #Resize
             img_ws_processed = Image.fromarray(cv2.cvtColor(img_ws_processed, cv2.COLOR_BGR2RGB))
