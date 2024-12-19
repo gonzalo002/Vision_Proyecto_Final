@@ -428,7 +428,7 @@ class ImageProcessor_Top:
                 self.message_type = 1
                 self.base_area = float(self.base_area)
                 file_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace('\\', "/")
-                with open(f'{file_path}/data/necessary_data/cube_area.yaml', 'r') as file:
+                with open(f'{file_path}/data/necessary_data/cube_area.yaml', '+w') as file:
                     yaml.dump(self.base_area, file)
             except:
                 print('Fallo al calibrar')
