@@ -53,7 +53,7 @@ cd Vision_Proyecto_Final
 
 #### 2. Crea un entorno virtual.
 ```bash
-python -m venv proyecto-final-venv
+python3 -m venv proyecto-final-venv
 ```
 #### 3. Activa el entorno virtual.
 ```bash
